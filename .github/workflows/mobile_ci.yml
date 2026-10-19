@@ -3,6 +3,8 @@ name: Money Flow Mobile CI / CD
 on:
   push:
     branches: [ main, master ]
+    tags:
+      - 'v*'
     paths:
       - 'mobile/**'
       - '.github/workflows/mobile_ci.yml'
@@ -12,9 +14,20 @@ on:
       - 'mobile/**'
       - '.github/workflows/mobile_ci.yml'
   workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Publish APK directly to GitHub Releases'
+        required: false
+        type: boolean
+        default: true
+      release_tag:
+        description: 'Release Tag (e.g. v1.0.0)'
+        required: false
+        type: string
+        default: 'v1.0.0'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -75,11 +88,29 @@ jobs:
       - name: Build Split-per-ABI APKs
         run: flutter build apk --release --split-per-abi
 
-      - name: Upload Release Artifacts
+      - name: Prepare Release Artifacts
+        run: |
+          mkdir -p ../dist
+          cp build/app/outputs/flutter-apk/app-release.apk ../dist/MoneyFlow-universal-release.apk
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk ../dist/MoneyFlow-arm64-v8a-release.apk
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk ../dist/MoneyFlow-armeabi-v7a-release.apk
+          cp build/app/outputs/flutter-apk/app-x86_64-release.apk ../dist/MoneyFlow-x86_64-release.apk
+
+      - name: Upload Build Artifacts (Actions)
         uses: actions/upload-artifact@v4
         with:
           name: money-flow-apks
-          path: |
-            mobile/build/app/outputs/flutter-apk/app-release.apk
-            mobile/build/app/outputs/flutter-apk/app-*-release.apk
+          path: dist/*.apk
           retention-days: 14
+
+      - name: Publish to GitHub Releases
+        if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.create_release == true)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.release_tag || github.ref_name }}
+          name: Money Flow Release ${{ inputs.release_tag || github.ref_name }}
+          files: dist/*.apk
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+
