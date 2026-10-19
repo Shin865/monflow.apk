@@ -1,0 +1,85 @@
+name: Money Flow Mobile CI / CD
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/mobile_ci.yml'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/mobile_ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Test, Analyze, and Build APK
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.5'
+          channel: 'stable'
+          cache: true
+
+      - name: Get Dependencies
+        run: flutter pub get
+
+      - name: Generate Code (Drift)
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Verify Code Formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Run Static Analysis
+        run: flutter analyze
+
+      - name: Run Unit & Widget Tests
+        run: flutter test
+
+      - name: Decode Keystore (Optional Secrets)
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PROPERTIES: ${{ secrets.KEY_PROPERTIES }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ] && [ -n "$KEYSTORE_PROPERTIES" ]; then
+            echo "Configuring release signing from GitHub Secrets..."
+            echo "$KEYSTORE_BASE64" | base64 -d > android/upload-keystore.jks
+            echo "$KEYSTORE_PROPERTIES" > android/key.properties
+          else
+            echo "No signing secrets detected; building with fallback signing config."
+          fi
+
+      - name: Build Universal Release APK
+        run: flutter build apk --release
+
+      - name: Build Split-per-ABI APKs
+        run: flutter build apk --release --split-per-abi
+
+      - name: Upload Release Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: money-flow-apks
+          path: |
+            mobile/build/app/outputs/flutter-apk/app-release.apk
+            mobile/build/app/outputs/flutter-apk/app-*-release.apk
+          retention-days: 14

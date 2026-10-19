@@ -1,0 +1,76 @@
+# ==========================================
+# Database & Local Storage (Privacy First)
+# ==========================================
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+backups/
+
+# ==========================================
+# Flutter & Dart Artifacts
+# ==========================================
+.dart_tool/
+mobile/.dart_tool/
+.packages
+mobile/.packages
+build/
+mobile/build/
+.flutter-plugins
+mobile/.flutter-plugins
+.flutter-plugins-dependencies
+mobile/.flutter-plugins-dependencies
+.pub-cache/
+mobile/.pub-cache/
+.pub/
+mobile/.pub/
+mobile/coverage/
+*.g.dart
+
+# ==========================================
+# Android Native Build Artifacts
+# ==========================================
+mobile/android/.gradle/
+mobile/android/captures/
+mobile/android/gradleArtifacts/
+mobile/android/app/debug/
+mobile/android/app/profile/
+mobile/android/app/release/
+mobile/android/local.properties
+mobile/android/GeneratedPluginRegistrant.java
+
+# ==========================================
+# Android Keystore, Keys, & Signing Secrets
+# ==========================================
+*.keystore
+*.jks
+key.properties
+mobile/android/key.properties
+*.key
+*.p12
+
+# ==========================================
+# IDE & Operating System Files
+# ==========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.idea/
+mobile/.idea/
+*.iml
+mobile/*.iml
+.vscode/*
+!.vscode/extensions.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.bak
+*.log

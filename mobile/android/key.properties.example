@@ -1,0 +1,13 @@
+# Template Konfigurasi Signing Release Android untuk Money Flow
+# PENTING:
+# 1. Salin file ini menjadi 'key.properties' di folder yang sama (mobile/android/)
+# 2. Isi nilai sesuai keystore Anda
+# 3. JANGAN PERNAH meng-commit file 'key.properties' atau file keystore (*.jks / *.keystore) ke repositori Git!
+#
+# Perintah untuk membuat keystore baru (jalankan di terminal):
+# keytool -genkey -v -keystore upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+#
+storePassword=GANTI_DENGAN_STORE_PASSWORD_ANDA
+keyPassword=GANTI_DENGAN_KEY_PASSWORD_ANDA
+keyAlias=upload
+storeFile=../upload-keystore.jks
