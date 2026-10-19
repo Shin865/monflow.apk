@@ -424,11 +424,9 @@ class ExportService {
   /// Bagikan file hasil ekspor ke aplikasi lain (WhatsApp, Drive, Email, dsb.).
   Future<void> shareFile(String filePath,
       {String subject = 'Ekspor Money Flow'}) async {
-    await SharePlus.instance.share(
-      ShareParams(
-        files: [XFile(filePath)],
-        subject: subject,
-      ),
+    await Share.shareXFiles(
+      [XFile(filePath)],
+      subject: subject,
     );
   }
 
