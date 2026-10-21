@@ -9,10 +9,7 @@ import 'package:money_flow/data/repositories/debt_repository.dart';
 import 'package:money_flow/data/repositories/deposit_repository.dart';
 import 'package:money_flow/data/repositories/investment_repository.dart';
 import 'package:money_flow/data/repositories/purchase_plan_repository.dart';
-import 'package:money_flow/data/repositories/savings_goal_repository.dart';
 import 'package:money_flow/data/repositories/transaction_repository.dart';
-import 'package:money_flow/data/services/forecast_service.dart';
-import 'package:money_flow/domain/rules/forecast_rules.dart';
 import 'package:money_flow/domain/rules/investment_rules.dart';
 import 'package:money_flow/domain/rules/net_worth_rules.dart';
 
@@ -44,7 +41,6 @@ class DashboardScreen extends ConsumerWidget {
           ref.invalidate(transactionRepositoryProvider);
           ref.invalidate(investmentRepositoryProvider);
           ref.invalidate(depositRepositoryProvider);
-          ref.invalidate(savingsGoalRepositoryProvider);
           ref.invalidate(purchasePlanRepositoryProvider);
         },
         child: SingleChildScrollView(
@@ -382,10 +378,10 @@ class _FinancialFeaturesRow extends StatelessWidget {
       children: [
         Expanded(
           child: _ActionButton(
-            icon: Icons.pie_chart_outline_rounded,
-            label: 'Anggaran',
+            icon: Icons.category_rounded,
+            label: 'Kategori',
             color: AppColors.income,
-            onTap: () => context.pushNamed('budgets'),
+            onTap: () => context.pushNamed('categories'),
           ),
         ),
         const SizedBox(width: 8),
@@ -429,19 +425,10 @@ class _Milestone5FeaturesRow extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(
           child: _ActionButton(
-            icon: Icons.flag_rounded,
-            label: 'Target & Rencana',
+            icon: Icons.shopping_bag_rounded,
+            label: 'Rencana Pembelian',
             color: Colors.purpleAccent,
             onTap: () => context.pushNamed('planning'),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _ActionButton(
-            icon: Icons.query_stats_rounded,
-            label: 'Forecast Masa Depan',
-            color: Colors.tealAccent,
-            onTap: () => context.pushNamed('forecast'),
           ),
         ),
       ],
@@ -458,12 +445,8 @@ class _Milestone5OverviewCards extends ConsumerWidget {
         ref.watch(investmentRepositoryProvider).watchPortfolioSummary();
     final depSummaryStream =
         ref.watch(depositRepositoryProvider).watchSummary();
-    final goalsStream = ref.watch(savingsGoalRepositoryProvider).watchSummary();
     final plansStream =
         ref.watch(purchasePlanRepositoryProvider).watchSummary();
-    final forecastFuture = ref
-        .watch(forecastServiceProvider)
-        .generateForecast(projectionMonths: 6);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -580,129 +563,20 @@ class _Milestone5OverviewCards extends ConsumerWidget {
           },
         ),
         const SizedBox(height: 10),
-        // 2. Kartu Ringkasan Target Tabungan & Rencana Pembelian
-        StreamBuilder<SavingsGoalSummary>(
-          stream: goalsStream,
-          builder: (context, goalSnap) {
-            return StreamBuilder<PurchasePlanSummary>(
-              stream: plansStream,
-              builder: (context, planSnap) {
-                final goals = goalSnap.data ??
-                    const SavingsGoalSummary(
-                      totalTarget: 0,
-                      totalSaved: 0,
-                      activeGoalsCount: 0,
-                      achievedGoalsCount: 0,
-                    );
-                final plans = planSnap.data ??
-                    const PurchasePlanSummary(
-                      totalActiveTarget: 0,
-                      totalAllocated: 0,
-                      totalHistoryTarget: 0,
-                      activeCount: 0,
-                      monthlyCommittedSavings: 0,
-                    );
-
-                return InkWell(
-                  onTap: () => context.pushNamed('planning'),
-                  borderRadius: BorderRadius.circular(14),
-                  child: Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Expanded(
-                              child: Row(
-                                children: [
-                                  Icon(Icons.flag_rounded,
-                                      color: Colors.purpleAccent, size: 20),
-                                  SizedBox(width: 8),
-                                  Flexible(
-                                    child: Text(
-                                      'Target & Rencana',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Text(
-                              '${goals.activeGoalsCount} Target • ${plans.activeCount} Rencana',
-                              style: const TextStyle(
-                                  fontSize: 12, color: Colors.white54),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('Tabungan Terkumpul',
-                                    style: TextStyle(
-                                        fontSize: 11, color: Colors.white54)),
-                                const SizedBox(height: 2),
-                                Text(
-                                  formatRupiah(goals.totalSaved),
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.income,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                const Text('Alokasi Rencana Belanja',
-                                    style: TextStyle(
-                                        fontSize: 11, color: Colors.white54)),
-                                const SizedBox(height: 2),
-                                Text(
-                                  formatRupiah(plans.totalAllocated),
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
+        // 2. Kartu Ringkasan Rencana Pembelian
+        StreamBuilder<PurchasePlanSummary>(
+          stream: plansStream,
+          builder: (context, planSnap) {
+            final plans = planSnap.data ??
+                const PurchasePlanSummary(
+                  totalActiveTarget: 0,
+                  totalHistoryTarget: 0,
+                  activeCount: 0,
+                  achievedCount: 0,
                 );
-              },
-            );
-          },
-        ),
-        const SizedBox(height: 10),
-        // 3. Kartu Ringkasan Forecast 6 Bulan
-        FutureBuilder<ForecastReport>(
-          future: forecastFuture,
-          builder: (context, snap) {
-            final report = snap.data;
-            final normalProjs = report?.scenarios['normal'] ?? [];
-            final endingBalance =
-                normalProjs.isNotEmpty ? normalProjs.last.projectedBalance : 0;
 
             return InkWell(
-              onTap: () => context.pushNamed('forecast'),
+              onTap: () => context.pushNamed('planning'),
               borderRadius: BorderRadius.circular(14),
               child: Container(
                 padding: const EdgeInsets.all(14),
@@ -711,38 +585,69 @@ class _Milestone5OverviewCards extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(color: AppColors.border),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                child: Column(
                   children: [
-                    const Row(
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Icon(Icons.query_stats_rounded,
-                            color: Colors.tealAccent, size: 20),
-                        SizedBox(width: 8),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        const Row(
                           children: [
+                            Icon(Icons.shopping_bag_rounded,
+                                color: Colors.purpleAccent, size: 20),
+                            SizedBox(width: 8),
                             Text(
-                              'Proyeksi Saldo (6 Bulan)',
+                              'Rencana Pembelian',
                               style: TextStyle(
                                   fontWeight: FontWeight.bold, fontSize: 14),
                             ),
+                          ],
+                        ),
+                        Text(
+                          '${plans.activeCount} Aktif • ${plans.achievedCount} Selesai',
+                          style: const TextStyle(
+                              fontSize: 12, color: Colors.white54),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Total Rencana Belanja Aktif',
+                                style: TextStyle(
+                                    fontSize: 11, color: Colors.white54)),
+                            const SizedBox(height: 2),
                             Text(
-                              'Simulasi Skenario Normal',
-                              style: TextStyle(
-                                  fontSize: 11, color: Colors.white54),
+                              formatRupiah(plans.totalActiveTarget),
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            const Text('Total Terealisasi',
+                                style: TextStyle(
+                                    fontSize: 11, color: Colors.white54)),
+                            const SizedBox(height: 2),
+                            Text(
+                              formatRupiah(plans.totalHistoryTarget),
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.income,
+                              ),
                             ),
                           ],
                         ),
                       ],
-                    ),
-                    Text(
-                      formatRupiah(endingBalance),
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.tealAccent,
-                      ),
                     ),
                   ],
                 ),

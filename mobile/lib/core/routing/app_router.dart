@@ -8,15 +8,12 @@ import 'package:money_flow/features/transactions/screens/transactions_screen.dar
 import 'package:money_flow/features/transactions/screens/create_transaction_screen.dart';
 import 'package:money_flow/features/transfers/screens/create_transfer_screen.dart';
 import 'package:money_flow/features/settings/screens/settings_screen.dart';
-import 'package:money_flow/features/budgets/screens/budget_screen.dart';
-import 'package:money_flow/features/budgets/screens/category_budget_detail_screen.dart';
 import 'package:money_flow/features/bills/screens/bills_screen.dart';
 import 'package:money_flow/features/bills/screens/bill_detail_screen.dart';
 import 'package:money_flow/features/debts/screens/debts_screen.dart';
 import 'package:money_flow/features/debts/screens/debt_detail_screen.dart';
 import 'package:money_flow/features/investments/screens/investments_deposits_screen.dart';
 import 'package:money_flow/features/planning/screens/planning_screen.dart';
-import 'package:money_flow/features/forecast/screens/forecast_screen.dart';
 import 'package:money_flow/core/routing/shell_screen.dart';
 
 import 'package:money_flow/features/reports/screens/reports_screen.dart';
@@ -79,23 +76,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const CategoriesScreen(),
       ),
       GoRoute(
-        path: '/budgets',
-        name: 'budgets',
-        builder: (context, state) => const BudgetScreen(),
-      ),
-      GoRoute(
-        path: '/budgets/detail',
-        name: 'category_budget_detail',
-        builder: (context, state) {
-          final extra = state.extra as Map<String, dynamic>;
-          return CategoryBudgetDetailScreen(
-            categoryId: extra['categoryId'] as int,
-            year: extra['year'] as int,
-            month: extra['month'] as int,
-          );
-        },
-      ),
-      GoRoute(
         path: '/bills',
         name: 'bills',
         builder: (context, state) => const BillsScreen(),
@@ -130,11 +110,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/planning',
         name: 'planning',
         builder: (context, state) => const PlanningScreen(),
-      ),
-      GoRoute(
-        path: '/forecast',
-        name: 'forecast',
-        builder: (context, state) => const ForecastScreen(),
       ),
       GoRoute(
         path: '/reports',

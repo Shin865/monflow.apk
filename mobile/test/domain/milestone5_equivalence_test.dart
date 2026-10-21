@@ -1,9 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:money_flow/domain/rules/deposit_rules.dart';
 import 'package:money_flow/domain/rules/investment_rules.dart';
-import 'package:money_flow/domain/rules/savings_goal_rules.dart';
-import 'package:money_flow/domain/rules/purchase_plan_rules.dart';
-import 'package:money_flow/domain/rules/forecast_rules.dart';
 
 /// Milestone 5 — Synthetic Parity & Financial Equivalence Unit Tests
 /// Directly mirroring `docs/milestone_5_test_spec.py` to ensure Dart matches Python exactly.
@@ -125,74 +122,6 @@ void main() {
       expect(sell.realizedGain, equals(2490000));
       expect(sell.remainingCost, equals(5000000));
       expect(sell.remainingUnits, equals(5.0));
-    });
-
-    test('Test 8: Savings Goal & Purchase Planning Metrics', () {
-      final asOf = DateTime(2026, 10, 19);
-      final targetD = DateTime(2027, 4, 19); // 6 months
-
-      final rem = SavingsGoalRules.remaining(
-        targetAmount: 30000000,
-        currentAmount: 12000000,
-      );
-      final prog = SavingsGoalRules.progress(
-        targetAmount: 30000000,
-        currentAmount: 12000000,
-      );
-      final monthly = SavingsGoalRules.monthlyRequired(
-        targetAmount: 30000000,
-        currentAmount: 12000000,
-        targetDate: targetD,
-        today: asOf,
-      );
-
-      expect(rem, equals(18000000));
-      expect(prog, equals(40.0));
-      expect(monthly, equals(3000000));
-
-      // Purchase plan rules parity
-      expect(
-        PurchasePlanRules.remaining(
-            targetAmount: 30000000, currentSaving: 12000000),
-        equals(18000000),
-      );
-      expect(
-        PurchasePlanRules.progress(
-            targetAmount: 30000000, currentSaving: 12000000),
-        equals(40.0),
-      );
-    });
-
-    test('Test 9: Forecast Multi-scenario Projections', () {
-      final scenarios = ForecastRules.projectAllScenarios(
-        currentBalance: 20000000,
-        avgMonthlyIncome: 8000000,
-        avgMonthlyExpense: 5000000,
-        monthlyPurchaseSavings: 500000,
-        months: 3,
-        startDate: DateTime(2026, 11, 1),
-      );
-
-      // Normal scenario:
-      // income: 8M, expense: 5M, savings: 500K -> net flow = 2.5M
-      final normal = scenarios['normal']!;
-      expect(normal[0].netFlow, equals(2500000));
-      expect(normal[0].projectedBalance, equals(22500000));
-      expect(normal[2].projectedBalance, equals(27500000));
-
-      // Conservative scenario:
-      // income: 7.2M, expense: 5.5M, savings: 500K -> net flow = 1.2M
-      final cons = scenarios['conservative']!;
-      expect(cons[0].netFlow, equals(1200000));
-      expect(cons[0].projectedBalance, equals(21200000));
-      expect(cons[2].projectedBalance, equals(23600000));
-
-      // Optimistic scenario:
-      // income: 8.8M, expense: 4.5M, savings: 500K -> net flow = 3.8M
-      final opt = scenarios['optimistic']!;
-      expect(opt[0].netFlow, equals(3800000));
-      expect(opt[0].projectedBalance, equals(23800000));
-      expect(opt[2].projectedBalance, equals(31400000));
     });
 
     test('Test 10: Safe Arithmetic Boundary (100 Billion Rupiah)', () {

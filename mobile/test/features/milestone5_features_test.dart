@@ -1,13 +1,10 @@
-import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:money_flow/core/database/database.dart';
 import 'package:money_flow/data/repositories/account_repository.dart';
 import 'package:money_flow/data/repositories/investment_repository.dart';
 import 'package:money_flow/data/repositories/deposit_repository.dart';
-import 'package:money_flow/data/repositories/savings_goal_repository.dart';
 import 'package:money_flow/data/repositories/purchase_plan_repository.dart';
-import 'package:money_flow/data/services/forecast_service.dart';
 import 'package:money_flow/domain/rules/net_worth_rules.dart';
 
 void main() {
@@ -15,9 +12,7 @@ void main() {
   late AccountRepository accountRepo;
   late InvestmentRepository investmentRepo;
   late DepositRepository depositRepo;
-  late SavingsGoalRepository savingsGoalRepo;
   late PurchasePlanRepository purchasePlanRepo;
-  late ForecastService forecastService;
 
   setUp(() async {
     db = AppDatabase.forTesting(NativeDatabase.memory());
@@ -25,9 +20,7 @@ void main() {
     accountRepo = AccountRepository(db);
     investmentRepo = InvestmentRepository(db);
     depositRepo = DepositRepository(db);
-    savingsGoalRepo = SavingsGoalRepository(db);
     purchasePlanRepo = PurchasePlanRepository(db);
-    forecastService = ForecastService(db);
   });
 
   tearDown(() async {
@@ -187,60 +180,6 @@ void main() {
     });
   });
 
-  group('Milestone 5 — Savings Goals Tests', () {
-    test(
-        'Create savings goal and add virtual contribution (no account deduction)',
-        () async {
-      final goal = await savingsGoalRepo.create(
-        name: 'Dana Darurat 6 Bulan',
-        targetAmount: 30000000,
-        currentAmount: 5000000,
-      );
-
-      expect(goal.status, equals(SavingsGoalStatus.active));
-
-      // Virtual contribution
-      await savingsGoalRepo.addContribution(goal.id, 10000000);
-
-      final updated = await savingsGoalRepo.getById(goal.id);
-      expect(updated!.currentAmount, equals(15000000));
-      expect(updated.status, equals(SavingsGoalStatus.active));
-
-      // Add remaining to achieve goal
-      await savingsGoalRepo.addContribution(goal.id, 15000000);
-      final achieved = await savingsGoalRepo.getById(goal.id);
-      expect(achieved!.currentAmount, equals(30000000));
-      expect(achieved.status, equals(SavingsGoalStatus.achieved));
-    });
-
-    test('Savings goal contribution from real account deducts account balance',
-        () async {
-      final acc = await accountRepo.create(
-        name: 'Tabungan Utama',
-        type: AccountType.bank,
-        initialBalance: 20000000,
-      );
-
-      final goal = await savingsGoalRepo.create(
-        name: 'Liburan Akhir Tahun',
-        targetAmount: 10000000,
-        isVirtual: false,
-      );
-
-      await savingsGoalRepo.addContribution(
-        goal.id,
-        3000000,
-        sourceAccountId: acc.id,
-      );
-
-      final updatedGoal = await savingsGoalRepo.getById(goal.id);
-      expect(updatedGoal!.currentAmount, equals(3000000));
-
-      final updatedAcc = await accountRepo.getById(acc.id);
-      expect(updatedAcc!.balance, equals(17000000)); // 20M - 3M
-    });
-  });
-
   group('Milestone 5 — Purchase Plan Tests', () {
     test('Create purchase plan and complete with real expense', () async {
       final acc = await accountRepo.create(
@@ -259,11 +198,6 @@ void main() {
 
       expect(plan.status, equals(PlanStatus.active));
 
-      // Add saving allocation
-      await purchasePlanRepo.addSaving(plan.id, 6000000);
-      var currentPlan = await purchasePlanRepo.getById(plan.id);
-      expect(currentPlan!.allocatedAmount, equals(6000000));
-
       // Complete purchase
       await purchasePlanRepo.completePlan(
         plan.id,
@@ -274,6 +208,7 @@ void main() {
 
       final completedPlan = await purchasePlanRepo.getById(plan.id);
       expect(completedPlan!.status, equals(PlanStatus.achieved));
+      expect(completedPlan.transactionId, isNotNull);
 
       final updatedAcc = await accountRepo.getById(acc.id);
       expect(updatedAcc!.balance, equals(25000000 - 15800000)); // 9,200,000
@@ -282,61 +217,20 @@ void main() {
             ..where((t) => t.type.equals(TransactionType.expense.index)))
           .get();
       expect(expenseTxns.any((t) => t.amount == 15800000), isTrue);
-    });
-  });
 
-  group('Milestone 5 — Forecast Read-Only & Sufficiency Tests', () {
-    test('Forecast detects insufficient data when transactions < 3', () async {
-      final report = await forecastService.generateForecast();
-      expect(report.hasSufficientData, isFalse);
-      expect(report.warningMessage, isNotNull);
-      expect(report.scenarios.containsKey('conservative'), isTrue);
-      expect(report.scenarios.containsKey('normal'), isTrue);
-      expect(report.scenarios.containsKey('optimistic'), isTrue);
-    });
+      // Verify audit history was recorded
+      final histories = await purchasePlanRepo.getHistories(plan.id);
+      expect(histories.any((h) => h.action == 'realized'), isTrue);
 
-    test('Forecast is strictly read-only and never alters database state',
-        () async {
-      final acc = await accountRepo.create(
-        name: 'Akun Tes Proyeksi',
-        type: AccountType.bank,
-        initialBalance: 50000000,
+      // Verify second realization is rejected (anti double-counting)
+      expect(
+        () => purchasePlanRepo.completePlan(
+          plan.id,
+          accountId: acc.id,
+          categoryId: cat.id,
+        ),
+        throwsStateError,
       );
-
-      final cat = (await db.select(db.categories).get()).first;
-
-      // Buat transaksi historis bulan lalu
-      final lastMonth =
-          DateTime(DateTime.now().year, DateTime.now().month - 1, 10);
-      for (var i = 1; i <= 4; i++) {
-        await db.into(db.transactions).insert(
-              TransactionsCompanion(
-                uuid: Value('txn-hist-$i'),
-                type: Value(i % 2 == 0
-                    ? TransactionType.income
-                    : TransactionType.expense),
-                accountId: Value(acc.id),
-                categoryId: Value(cat.id),
-                amount: const Value(2000000),
-                date: Value(lastMonth),
-                isActual: const Value(true),
-              ),
-            );
-      }
-
-      final beforeTxnCount = (await db.select(db.transactions).get()).length;
-      final beforeBalance = (await accountRepo.getById(acc.id))!.balance;
-
-      // Jalankan forecast
-      final report =
-          await forecastService.generateForecast(projectionMonths: 6);
-
-      final afterTxnCount = (await db.select(db.transactions).get()).length;
-      final afterBalance = (await accountRepo.getById(acc.id))!.balance;
-
-      expect(afterTxnCount, equals(beforeTxnCount));
-      expect(afterBalance, equals(beforeBalance));
-      expect(report.currentBalance, equals(beforeBalance));
     });
   });
 

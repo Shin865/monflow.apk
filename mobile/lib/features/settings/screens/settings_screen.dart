@@ -2,8 +2,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:money_flow/core/formatting/formatters.dart';
 import 'package:money_flow/core/theme/app_theme.dart';
+import 'package:money_flow/core/theme/theme_provider.dart';
 import 'package:money_flow/data/services/backup_restore_service.dart';
 import 'package:money_flow/data/services/encrypted_backup_service.dart';
 import 'package:money_flow/data/services/security_service.dart';
@@ -91,6 +94,69 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  void _showThemeDialog(
+      BuildContext context, WidgetRef ref, ThemeMode current) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.palette_rounded, color: Colors.amber, size: 24),
+            SizedBox(width: 10),
+            Text('Pilih Tema Aplikasi'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            RadioListTile<ThemeMode>(
+              title: const Text('Tema Gelap (Dark Mode)'),
+              subtitle: const Text('Nuansa gelap elegan & hemat baterai'),
+              value: ThemeMode.dark,
+              groupValue: current,
+              onChanged: (val) {
+                if (val != null) {
+                  ref.read(themeModeProvider.notifier).setThemeMode(val);
+                  Navigator.pop(ctx);
+                }
+              },
+            ),
+            RadioListTile<ThemeMode>(
+              title: const Text('Tema Terang (Light Mode)'),
+              subtitle: const Text('Tampilan bersih & kontras tinggi'),
+              value: ThemeMode.light,
+              groupValue: current,
+              onChanged: (val) {
+                if (val != null) {
+                  ref.read(themeModeProvider.notifier).setThemeMode(val);
+                  Navigator.pop(ctx);
+                }
+              },
+            ),
+            RadioListTile<ThemeMode>(
+              title: const Text('Mengikuti Sistem Perangkat'),
+              subtitle: const Text('Menyesuaikan tema otomatis dari sistem OS'),
+              value: ThemeMode.system,
+              groupValue: current,
+              onChanged: (val) {
+                if (val != null) {
+                  ref.read(themeModeProvider.notifier).setThemeMode(val);
+                  Navigator.pop(ctx);
+                }
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal'),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ============================================================
   // BACKUP BIASA
   // ============================================================
@@ -145,6 +211,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onPressed: () => Navigator.pop(ctx),
                   child: const Text('OK'),
                 ),
+                if (result.filePath != null)
+                  FilledButton.icon(
+                    icon: const Icon(Icons.share_rounded, size: 18),
+                    label: const Text('Bagikan / Simpan'),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      Share.shareXFiles([XFile(result.filePath!)],
+                          subject: 'Money Flow Backup JSON');
+                    },
+                  ),
               ],
             ),
           );
@@ -168,22 +244,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     if (!mounted) return;
 
-    if (backups.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-              'Belum ada file cadangan tersedia. Buat cadangan terlebih dahulu.'),
-          backgroundColor: AppColors.warning,
-        ),
-      );
-      return;
-    }
+    File? selectedFile;
 
-    final selectedFile = await showModalBottomSheet<File>(
+    final selected = await showModalBottomSheet<dynamic>(
       context: context,
       isScrollControlled: true,
       builder: (ctx) => DraggableScrollableSheet(
-        initialChildSize: 0.55,
+        initialChildSize: 0.6,
         maxChildSize: 0.85,
         minChildSize: 0.35,
         expand: false,
@@ -197,7 +264,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
                 ),
               ),
               const SizedBox(height: 4),
@@ -206,54 +272,119 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 style: TextStyle(fontSize: 13, color: AppColors.textMuted),
               ),
               const SizedBox(height: 16),
-              Expanded(
-                child: ListView.builder(
-                  controller: scrollController,
-                  itemCount: backups.length,
-                  itemBuilder: (context, index) {
-                    final file = backups[index];
-                    final fileName =
-                        file.path.split(Platform.pathSeparator).last;
-                    final stat = file.statSync();
-
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      child: ListTile(
-                        leading: const Icon(Icons.description_outlined,
-                            color: AppColors.primary),
-                        title: Text(
-                          fileName,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        subtitle: Text(
-                          '${(stat.size / 1024).toStringAsFixed(1)} KB • Diubah ${formatDate(stat.modified)}',
-                          style: const TextStyle(
-                              fontSize: 11, color: AppColors.textMuted),
-                        ),
-                        trailing: const Icon(Icons.chevron_right,
-                            size: 20, color: AppColors.textMuted),
-                        onTap: () => Navigator.pop(context, file),
-                      ),
-                    );
-                  },
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: const BorderSide(color: AppColors.primary, width: 1.5),
                 ),
+                tileColor: AppColors.primary.withOpacity(0.08),
+                leading: const Icon(Icons.file_open_rounded,
+                    color: AppColors.primary, size: 28),
+                title: const Text('Pilih File dari Perangkat...',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                subtitle: const Text(
+                    'Cari file .json di folder Download/Dokumen',
+                    style: TextStyle(fontSize: 12)),
+                trailing:
+                    const Icon(Icons.chevron_right, color: AppColors.primary),
+                onTap: () => Navigator.pop(ctx, '__PICK_FILE__'),
               ),
+              const SizedBox(height: 12),
+              const Text(
+                'CADANGAN LOKAL TERSIMPAN',
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textMuted,
+                    letterSpacing: 1),
+              ),
+              const SizedBox(height: 8),
+              if (backups.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Center(
+                    child: Text('Belum ada cadangan lokal di folder internal.',
+                        style: TextStyle(
+                            color: AppColors.textMuted, fontSize: 13)),
+                  ),
+                )
+              else
+                Expanded(
+                  child: ListView.builder(
+                    controller: scrollController,
+                    itemCount: backups.length,
+                    itemBuilder: (context, index) {
+                      final file = backups[index];
+                      final fileName =
+                          file.path.split(Platform.pathSeparator).last;
+                      final stat = file.statSync();
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).cardColor,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: ListTile(
+                          leading: const Icon(Icons.description_outlined,
+                              color: AppColors.primary),
+                          title: Text(
+                            fileName,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          subtitle: Text(
+                            '${(stat.size / 1024).toStringAsFixed(1)} KB • Diubah ${formatDate(stat.modified)}',
+                            style: const TextStyle(
+                                fontSize: 11, color: AppColors.textMuted),
+                          ),
+                          trailing: const Icon(Icons.chevron_right,
+                              size: 20, color: AppColors.textMuted),
+                          onTap: () => Navigator.pop(ctx, file),
+                        ),
+                      );
+                    },
+                  ),
+                ),
             ],
           ),
         ),
       ),
     );
+
+    if (selected == null || !mounted) return;
+
+    if (selected == '__PICK_FILE__') {
+      try {
+        final result = await FilePicker.platform.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: ['json'],
+        );
+        if (result != null && result.files.single.path != null) {
+          selectedFile = File(result.files.single.path!);
+        } else {
+          return;
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text('Gagal memilih file: $e'),
+                backgroundColor: AppColors.expense),
+          );
+        }
+        return;
+      }
+    } else if (selected is File) {
+      selectedFile = selected;
+    }
 
     if (selectedFile == null || !mounted) return;
 
@@ -515,10 +646,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 : 'Gagal Enkripsi'),
             content: Text(res.message),
             actions: [
-              FilledButton(
+              TextButton(
                 onPressed: () => Navigator.pop(ctx),
                 child: const Text('OK'),
               ),
+              if (res.success && res.filePath != null)
+                FilledButton.icon(
+                  icon: const Icon(Icons.share_rounded, size: 18),
+                  label: const Text('Bagikan / Simpan'),
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    Share.shareXFiles([XFile(res.filePath!)],
+                        subject: 'Money Flow Encrypted Backup');
+                  },
+                ),
             ],
           ),
         );
@@ -534,22 +675,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     if (!mounted) return;
 
-    if (files.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content:
-              Text('Belum ada file cadangan terenkripsi (.enc.json) tersedia.'),
-          backgroundColor: AppColors.warning,
-        ),
-      );
-      return;
-    }
+    File? selectedFile;
 
-    final selectedFile = await showModalBottomSheet<File>(
+    final selected = await showModalBottomSheet<dynamic>(
       context: context,
       isScrollControlled: true,
       builder: (ctx) => DraggableScrollableSheet(
-        initialChildSize: 0.55,
+        initialChildSize: 0.6,
         maxChildSize: 0.85,
         minChildSize: 0.35,
         expand: false,
@@ -562,32 +694,102 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 'Pilih File Cadangan Terenkripsi',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: ListView.builder(
-                  controller: scrollController,
-                  itemCount: files.length,
-                  itemBuilder: (context, index) {
-                    final f = files[index];
-                    final name = f.path.split(Platform.pathSeparator).last;
-                    return ListTile(
-                      leading: const Icon(Icons.enhanced_encryption_rounded,
-                          color: Colors.amber),
-                      title: Text(name,
-                          style: const TextStyle(
-                              fontSize: 13, fontWeight: FontWeight.w600)),
-                      subtitle: Text(
-                          '${(f.statSync().size / 1024).toStringAsFixed(1)} KB'),
-                      onTap: () => Navigator.pop(ctx, f),
-                    );
-                  },
-                ),
+              const SizedBox(height: 4),
+              const Text(
+                'Pilih file terenkripsi (.enc.json) dari penyimpanan',
+                style: TextStyle(fontSize: 13, color: AppColors.textMuted),
               ),
+              const SizedBox(height: 16),
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: const BorderSide(color: Colors.amber, width: 1.5),
+                ),
+                tileColor: Colors.amber.withOpacity(0.08),
+                leading: const Icon(Icons.file_open_rounded,
+                    color: Colors.amber, size: 28),
+                title: const Text('Pilih File dari Perangkat...',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                subtitle: const Text('Cari file .json / .enc.json di perangkat',
+                    style: TextStyle(fontSize: 12)),
+                trailing: const Icon(Icons.chevron_right, color: Colors.amber),
+                onTap: () => Navigator.pop(ctx, '__PICK_FILE__'),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'CADANGAN TERENKRIPSI LOKAL',
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textMuted,
+                    letterSpacing: 1),
+              ),
+              const SizedBox(height: 8),
+              if (files.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Center(
+                    child: Text(
+                        'Belum ada file cadangan terenkripsi di folder internal.',
+                        style: TextStyle(
+                            color: AppColors.textMuted, fontSize: 13)),
+                  ),
+                )
+              else
+                Expanded(
+                  child: ListView.builder(
+                    controller: scrollController,
+                    itemCount: files.length,
+                    itemBuilder: (context, index) {
+                      final f = files[index];
+                      final name = f.path.split(Platform.pathSeparator).last;
+                      return ListTile(
+                        leading: const Icon(Icons.enhanced_encryption_rounded,
+                            color: Colors.amber),
+                        title: Text(name,
+                            style: const TextStyle(
+                                fontSize: 13, fontWeight: FontWeight.w600)),
+                        subtitle: Text(
+                            '${(f.statSync().size / 1024).toStringAsFixed(1)} KB'),
+                        onTap: () => Navigator.pop(ctx, f),
+                      );
+                    },
+                  ),
+                ),
             ],
           ),
         ),
       ),
     );
+
+    if (selected == null || !mounted) return;
+
+    if (selected == '__PICK_FILE__') {
+      try {
+        final result = await FilePicker.platform.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: ['json'],
+        );
+        if (result != null && result.files.single.path != null) {
+          selectedFile = File(result.files.single.path!);
+        } else {
+          return;
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text('Gagal memilih file: $e'),
+                backgroundColor: AppColors.expense),
+          );
+        }
+        return;
+      }
+    } else if (selected is File) {
+      selectedFile = selected;
+    }
 
     if (selectedFile == null || !mounted) return;
 
@@ -691,6 +893,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeMode = ref.watch(themeModeProvider);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Pengaturan'),
@@ -739,6 +943,37 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           const SizedBox(height: 24),
 
+          // Tampilan & Tema Section
+          const Text(
+            'TAMPILAN & TEMA',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textMuted,
+              letterSpacing: 1.5,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          _SettingsTile(
+            icon: themeMode == ThemeMode.light
+                ? Icons.light_mode_rounded
+                : (themeMode == ThemeMode.dark
+                    ? Icons.dark_mode_rounded
+                    : Icons.brightness_auto_rounded),
+            iconColor: Colors.amber,
+            title: 'Tema Tampilan',
+            subtitle: themeMode == ThemeMode.light
+                ? 'Tema Terang (Light Mode)'
+                : (themeMode == ThemeMode.dark
+                    ? 'Tema Gelap (Dark Mode)'
+                    : 'Mengikuti Sistem Perangkat'),
+            trailing: const Icon(Icons.chevron_right_rounded,
+                color: AppColors.textMuted),
+            onTap: () => _showThemeDialog(context, ref, themeMode),
+          ),
+          const SizedBox(height: 24),
+
           // Master Data Section
           const Text(
             'MASTER DATA & KEUANGAN',
@@ -759,17 +994,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             trailing: const Icon(Icons.chevron_right_rounded,
                 color: AppColors.textMuted),
             onTap: () => context.pushNamed('categories'),
-          ),
-          const SizedBox(height: 8),
-
-          _SettingsTile(
-            icon: Icons.pie_chart_outline_rounded,
-            iconColor: AppColors.income,
-            title: 'Anggaran (Budget)',
-            subtitle: 'Pantau batas pengeluaran bulanan per kategori',
-            trailing: const Icon(Icons.chevron_right_rounded,
-                color: AppColors.textMuted),
-            onTap: () => context.pushNamed('budgets'),
           ),
           const SizedBox(height: 8),
 
@@ -1019,7 +1243,9 @@ class _PreviewItemRow extends StatelessWidget {
             style: TextStyle(
               fontSize: 13,
               fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
-              color: isBold ? AppColors.primary : AppColors.textPrimary,
+              color: isBold
+                  ? AppColors.primary
+                  : Theme.of(context).colorScheme.onSurface,
             ),
           ),
         ],
@@ -1055,7 +1281,7 @@ class _SettingsTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: Theme.of(context).dividerColor),
         ),
         child: Row(
           children: [
@@ -1075,10 +1301,10 @@ class _SettingsTile extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 2),

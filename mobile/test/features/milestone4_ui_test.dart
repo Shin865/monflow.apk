@@ -5,11 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:money_flow/core/database/database.dart';
 import 'package:money_flow/data/repositories/bill_repository.dart';
-import 'package:money_flow/data/repositories/budget_repository.dart';
-import 'package:money_flow/data/repositories/category_repository.dart';
 import 'package:money_flow/data/repositories/debt_repository.dart';
 import 'package:money_flow/features/bills/screens/bills_screen.dart';
-import 'package:money_flow/features/budgets/screens/budget_screen.dart';
 import 'package:money_flow/features/debts/screens/debts_screen.dart';
 
 Widget _buildTestApp(Widget child, AppDatabase db) {
@@ -32,15 +29,11 @@ Widget _buildTestApp(Widget child, AppDatabase db) {
 
 void main() {
   late AppDatabase db;
-  late CategoryRepository categoryRepo;
-  late BudgetRepository budgetRepo;
   late BillRepository billRepo;
   late DebtRepository debtRepo;
 
   setUp(() async {
     db = AppDatabase.forTesting(NativeDatabase.memory());
-    categoryRepo = CategoryRepository(db);
-    budgetRepo = BudgetRepository(db);
     billRepo = BillRepository(db);
     debtRepo = DebtRepository(db);
 
@@ -53,42 +46,6 @@ void main() {
   });
 
   group('Milestone 4 UI & Widget Tests', () {
-    testWidgets(
-        'BudgetScreen — Menampilkan ringkasan anggaran bulanan & daftar kategori',
-        (tester) async {
-      tester.view.physicalSize = const Size(1080, 2400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(() {
-        tester.view.resetPhysicalSize();
-        tester.view.resetDevicePixelRatio();
-      });
-
-      final now = DateTime.now();
-
-      // Ambil kategori makanan yang sudah di-seed
-      final categories = await categoryRepo.getActiveCategories();
-      final catFood = categories.firstWhere((c) => c.name == 'Makanan');
-
-      await budgetRepo.setBudget(
-        categoryId: catFood.id,
-        year: now.year,
-        month: now.month,
-        amount: 2500000,
-      );
-
-      await tester.pumpWidget(_buildTestApp(const BudgetScreen(), db));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Anggaran (Budget)'), findsOneWidget);
-      expect(find.text('Total Pengeluaran vs Anggaran'), findsOneWidget);
-      expect(find.text('Makanan'), findsWidgets);
-      expect(find.textContaining('2.500.000'), findsWidgets);
-      expect(find.text('Aman'), findsWidgets);
-
-      await tester.pumpWidget(const SizedBox());
-      await tester.pumpAndSettle();
-    });
-
     testWidgets(
         'BillsScreen — Menampilkan filter chip, daftar tagihan, dan tombol bayar',
         (tester) async {

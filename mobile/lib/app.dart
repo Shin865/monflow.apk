@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:money_flow/core/theme/app_theme.dart';
+import 'package:money_flow/core/theme/theme_provider.dart';
 import 'package:money_flow/core/routing/app_router.dart';
 import 'package:money_flow/data/services/security_service.dart';
 import 'package:money_flow/features/security/screens/pin_lock_screen.dart';
@@ -52,11 +53,14 @@ class _MoneyFlowAppState extends ConsumerState<MoneyFlowApp>
   Widget build(BuildContext context) {
     final router = ref.watch(appRouterProvider);
     final sec = ref.watch(securityServiceProvider);
+    final themeMode = ref.watch(themeModeProvider);
 
     return MaterialApp.router(
       title: 'Money Flow',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: themeMode,
       routerConfig: router,
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,

@@ -5,14 +5,12 @@ import 'package:money_flow/core/database/database.dart';
 import 'package:money_flow/data/repositories/account_repository.dart';
 import 'package:money_flow/data/repositories/transaction_repository.dart';
 import 'package:money_flow/data/repositories/transfer_repository.dart';
-import 'package:money_flow/data/repositories/budget_repository.dart';
 import 'package:money_flow/data/repositories/bill_repository.dart';
 import 'package:money_flow/data/repositories/debt_repository.dart';
 import 'package:money_flow/data/repositories/deposit_repository.dart';
-import 'package:money_flow/data/repositories/savings_goal_repository.dart';
+import 'package:money_flow/data/repositories/purchase_plan_repository.dart';
 import 'package:money_flow/data/services/backup_restore_service.dart';
 import 'package:money_flow/data/services/encrypted_backup_service.dart';
-import 'package:money_flow/data/services/forecast_service.dart';
 import 'package:money_flow/data/services/report_service.dart';
 
 void main() {
@@ -24,11 +22,10 @@ void main() {
   late AccountRepository accountRepo;
   late TransactionRepository transactionRepo;
   late TransferRepository transferRepo;
-  late BudgetRepository budgetRepo;
   late BillRepository billRepo;
   late DebtRepository debtRepo;
   late DepositRepository depositRepo;
-  late SavingsGoalRepository goalRepo;
+  late PurchasePlanRepository purchasePlanRepo;
   late BackupRestoreService backupService;
   late EncryptedBackupService encryptedBackupService;
   late ReportService reportService;
@@ -41,15 +38,13 @@ void main() {
     accountRepo = AccountRepository(db);
     transactionRepo = TransactionRepository(db, accountRepo);
     transferRepo = TransferRepository(db, accountRepo);
-    budgetRepo = BudgetRepository(db);
     billRepo = BillRepository(db);
     debtRepo = DebtRepository(db);
     depositRepo = DepositRepository(db);
-    goalRepo = SavingsGoalRepository(db);
+    purchasePlanRepo = PurchasePlanRepository(db);
     backupService = BackupRestoreService(db);
     encryptedBackupService = EncryptedBackupService(backupService);
-    final forecastService = ForecastService(db);
-    reportService = ReportService(db, forecastService);
+    reportService = ReportService(db);
   });
 
   tearDown(() async {
@@ -154,11 +149,10 @@ void main() {
         date: DateTime.now(),
       );
 
-      await budgetRepo.setBudget(
-        categoryId: cat.id,
-        year: 2026,
-        month: 10,
-        amount: 5000000,
+      await purchasePlanRepo.create(
+        name: 'Laptop Kerja',
+        targetAmount: 18000000,
+        description: 'Untuk produktivitas',
       );
       await billRepo.createBill(
         name: 'Tagihan Listrik PLN',
@@ -178,11 +172,6 @@ void main() {
         annualRateBps: 550, // 5.5%
         tenorMonths: 12,
         startDate: DateTime.now(),
-      );
-      await goalRepo.create(
-        name: 'Dana Darurat 2027',
-        targetAmount: 60000000,
-        targetDate: DateTime.now().add(const Duration(days: 365)),
       );
 
       // 2. Export Encrypted Backup
@@ -207,9 +196,10 @@ void main() {
       expect(restoredAccounts.any((a) => a.name == 'CIMB Niaga'), isTrue);
       expect(restoredAccounts.any((a) => a.name == 'GoPay'), isTrue);
 
-      final restoredBudgets = await freshDb.select(freshDb.budgets).get();
-      expect(restoredBudgets.length, equals(1));
-      expect(restoredBudgets.first.amount, equals(5000000));
+      final restoredPurchasePlans =
+          await freshDb.select(freshDb.purchasePlans).get();
+      expect(restoredPurchasePlans.length, equals(1));
+      expect(restoredPurchasePlans.first.name, equals('Laptop Kerja'));
 
       final restoredBills = await freshDb.select(freshDb.bills).get();
       expect(restoredBills.length, equals(1));
@@ -222,10 +212,6 @@ void main() {
       final restoredDeposits = await freshDb.select(freshDb.deposits).get();
       expect(restoredDeposits.length, equals(1));
       expect(restoredDeposits.first.principal, equals(20000000));
-
-      final restoredGoals = await freshDb.select(freshDb.savingsGoals).get();
-      expect(restoredGoals.length, equals(1));
-      expect(restoredGoals.first.name, equals('Dana Darurat 2027'));
 
       await freshDb.close();
     });

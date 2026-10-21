@@ -385,8 +385,21 @@ class PurchasePlans extends Table {
   TextColumn get category => text().nullable()(); // Kategori barang
   TextColumn get urlLink => text().nullable()(); // Link produk
   TextColumn get description => text().nullable()();
+  IntColumn get transactionId =>
+      integer().nullable().references(Transactions, #id)();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+/// Tabel riwayat / audit perubahan rencana pembelian (Purchase Planning History).
+class PurchasePlanHistories extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get planId => integer().references(PurchasePlans, #id)();
+  TextColumn get action => text().withLength(
+      min: 1, max: 50)(); // created, updated, realized, cancelled, deleted
+  DateTimeColumn get timestamp => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get details => text().nullable()();
+  TextColumn get notes => text().nullable()();
 }
 
 // ============================================================
@@ -409,6 +422,7 @@ class PurchasePlans extends Table {
   Deposits,
   SavingsGoals,
   PurchasePlans,
+  PurchasePlanHistories,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
@@ -417,7 +431,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -438,6 +452,10 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(deposits);
             await m.createTable(savingsGoals);
             await m.createTable(purchasePlans);
+          }
+          if (from < 4) {
+            await m.addColumn(purchasePlans, purchasePlans.transactionId);
+            await m.createTable(purchasePlanHistories);
           }
         },
       );

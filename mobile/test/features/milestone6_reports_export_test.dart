@@ -4,7 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:money_flow/core/database/database.dart';
 import 'package:money_flow/data/repositories/account_repository.dart';
 import 'package:money_flow/data/repositories/transaction_repository.dart';
-import 'package:money_flow/data/services/forecast_service.dart';
 import 'package:money_flow/data/services/report_service.dart';
 import 'package:money_flow/data/services/export_service.dart';
 
@@ -16,7 +15,6 @@ void main() {
   late AppDatabase db;
   late AccountRepository accountRepo;
   late TransactionRepository transactionRepo;
-  late ForecastService forecastService;
   late ReportService reportService;
   late ExportService exportService;
 
@@ -25,8 +23,7 @@ void main() {
     await db.seedDefaultCategories();
     accountRepo = AccountRepository(db);
     transactionRepo = TransactionRepository(db, accountRepo);
-    forecastService = ForecastService(db);
-    reportService = ReportService(db, forecastService);
+    reportService = ReportService(db);
     exportService = ExportService(db, reportService);
   });
 
@@ -124,7 +121,6 @@ void main() {
       expect(report.cashFlow, isNotNull);
       expect(report.accountBalances, isNotNull);
       expect(report.totalAssets, greaterThanOrEqualTo(0));
-      expect(report.forecast, isNotNull);
     });
   });
 

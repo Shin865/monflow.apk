@@ -5,7 +5,6 @@ import 'package:money_flow/core/formatting/formatters.dart';
 import 'package:money_flow/core/theme/app_theme.dart';
 import 'package:money_flow/data/services/report_service.dart';
 import 'package:money_flow/data/services/export_service.dart';
-import 'package:money_flow/data/repositories/budget_repository.dart';
 
 enum ReportPeriod {
   thisMonth,
@@ -168,6 +167,36 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   if (res.success && res.filePath != null) {
                     await exporter.shareFile(res.filePath!,
                         subject: 'Ekspor Transaksi Money Flow');
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                          content: Text(res.message),
+                          backgroundColor: AppColors.expense),
+                    );
+                  }
+                }
+              },
+            ),
+            ListTile(
+              leading: const CircleAvatar(
+                backgroundColor: Color(0xFFE0F2F1),
+                child: Icon(Icons.table_view_rounded, color: Colors.teal),
+              ),
+              title: const Text('Ekspor Laporan Keuangan (Excel .xlsx)'),
+              subtitle: const Text(
+                  'Buku kerja 7 sheet lengkap: Ringkasan, Transaksi, Bulanan, Akun, Investasi, Deposito, Hutang/Tagihan'),
+              onTap: () async {
+                Navigator.pop(ctx);
+                final range = _resolveDateRange();
+                final exporter = ref.read(exportServiceProvider);
+                final res = await exporter.exportFinancialReportToExcel(
+                  startDate: range.start,
+                  endDate: range.end,
+                );
+                if (mounted) {
+                  if (res.success && res.filePath != null) {
+                    await exporter.shareFile(res.filePath!,
+                        subject: 'Laporan Keuangan Excel Money Flow');
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -356,22 +385,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
           // 3. Pengeluaran per Kategori (fl_chart Pie)
           _buildCategoryPieCard(r),
-          const SizedBox(height: 16),
-
-          // 4. Anggaran vs Realisasi
-          _buildBudgetRealizationCard(r),
-          const SizedBox(height: 16),
-
-          // 5. Posisi Akun & Kekayaan Bersih
+          // 4. Posisi Akun & Kekayaan Bersih
           _buildNetWorthCard(r),
           const SizedBox(height: 16),
 
-          // 6. Ringkasan Investasi & Deposito
+          // 5. Ringkasan Investasi & Deposito
           _buildInvestmentsDepositsCard(r),
-          const SizedBox(height: 16),
-
-          // 7. Ringkasan Forecast 3 Skenario
-          _buildForecastCard(r),
           const SizedBox(height: 24),
         ],
       ),
@@ -720,84 +739,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-  Widget _buildBudgetRealizationCard(FinancialComprehensiveReport r) {
-    final budgets = r.budgetRealizations;
-
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Anggaran vs Realisasi',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'Evaluasi kedisiplinan belanja bulan berjalan',
-              style: TextStyle(fontSize: 12, color: AppColors.textMuted),
-            ),
-            const SizedBox(height: 16),
-            if (budgets.isEmpty)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  child: Text('Belum ada anggaran bulanan yang ditetapkan.'),
-                ),
-              )
-            else
-              Column(
-                children: budgets.map((b) {
-                  final progress = (b.usedPercent / 100.0).clamp(0.0, 1.0);
-                  final color = switch (b.status) {
-                    BudgetAlertStatus.safe => AppColors.income,
-                    BudgetAlertStatus.nearLimit => AppColors.warning,
-                    BudgetAlertStatus.exceeded => AppColors.expense,
-                  };
-
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(b.categoryName,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w600)),
-                            Text(
-                              '${b.usedPercent.toStringAsFixed(0)}% • ${formatRupiah(b.actualSpent)} / ${formatRupiah(b.budgetAmount)}',
-                              style: TextStyle(
-                                  fontSize: 12,
-                                  color: color,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: LinearProgressIndicator(
-                            value: progress,
-                            backgroundColor: AppColors.border,
-                            valueColor: AlwaysStoppedAnimation<Color>(color),
-                            minHeight: 8,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildNetWorthCard(FinancialComprehensiveReport r) {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -861,68 +802,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             const Divider(height: 16),
             _buildKvRow(
                 'Total Pokok Deposito', formatRupiah(r.totalDepositsPrincipal)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildForecastCard(FinancialComprehensiveReport r) {
-    final fc = r.forecast;
-    final normalScenario = fc.scenarios['normal'];
-
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Proyeksi Saldo (Forecast)',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Text('Read-Only',
-                      style: TextStyle(
-                          fontSize: 10,
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.bold)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              fc.hasSufficientData
-                  ? 'Estimasi saldo 6 bulan ke depan berdasarkan rata-rata 3 bulan terakhir.'
-                  : (fc.warningMessage ??
-                      'Data transaksi belum mencukupi untuk proyeksi presisi.'),
-              style: TextStyle(
-                fontSize: 11,
-                color: fc.hasSufficientData
-                    ? AppColors.textMuted
-                    : AppColors.warning,
-              ),
-            ),
-            const SizedBox(height: 12),
-            if (normalScenario != null && normalScenario.isNotEmpty) ...[
-              _buildKvRow('Proyeksi Bulan ke-1 (Normal)',
-                  formatRupiah(normalScenario.first.projectedBalance)),
-              _buildKvRow('Proyeksi Bulan ke-3 (Normal)',
-                  formatRupiah(normalScenario[2].projectedBalance)),
-              _buildKvRow('Proyeksi Bulan ke-6 (Normal)',
-                  formatRupiah(normalScenario.last.projectedBalance),
-                  isBold: true),
-            ],
           ],
         ),
       ),

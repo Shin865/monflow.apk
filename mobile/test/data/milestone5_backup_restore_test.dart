@@ -5,7 +5,6 @@ import 'package:money_flow/core/database/database.dart';
 import 'package:money_flow/data/repositories/account_repository.dart';
 import 'package:money_flow/data/repositories/investment_repository.dart';
 import 'package:money_flow/data/repositories/deposit_repository.dart';
-import 'package:money_flow/data/repositories/savings_goal_repository.dart';
 import 'package:money_flow/data/repositories/purchase_plan_repository.dart';
 import 'package:money_flow/data/services/backup_restore_service.dart';
 
@@ -14,7 +13,6 @@ void main() {
   late AccountRepository accountRepo;
   late InvestmentRepository investmentRepo;
   late DepositRepository depositRepo;
-  late SavingsGoalRepository savingsGoalRepo;
   late PurchasePlanRepository purchasePlanRepo;
   late BackupRestoreService backupService;
 
@@ -24,7 +22,6 @@ void main() {
     accountRepo = AccountRepository(db);
     investmentRepo = InvestmentRepository(db);
     depositRepo = DepositRepository(db);
-    savingsGoalRepo = SavingsGoalRepository(db);
     purchasePlanRepo = PurchasePlanRepository(db);
     backupService = BackupRestoreService(db);
   });
@@ -33,7 +30,7 @@ void main() {
     await db.close();
   });
 
-  group('Milestone 5 — Backup & Restore Schema Version 3', () {
+  group('Milestone 5 — Backup & Restore Schema Version 4', () {
     test('Export includes Milestone 5 tables in JSON snapshot', () async {
       final acc = await accountRepo.create(
           name: 'Bank Jago', type: AccountType.bank, initialBalance: 100000000);
@@ -52,27 +49,20 @@ void main() {
         tenorMonths: 12,
         startDate: DateTime(2026, 1, 1),
       );
-      await savingsGoalRepo.create(
-        name: 'Dana Darurat',
-        targetAmount: 30000000,
-        currentAmount: 10000000,
-      );
       await purchasePlanRepo.create(
         name: 'Sepeda Lipat',
         targetAmount: 5000000,
-        allocatedAmount: 2000000,
         priority: PlanPriority.high,
       );
 
       final jsonStr = await backupService.exportToJson();
       final map = jsonDecode(jsonStr) as Map<String, dynamic>;
 
-      expect(map['schema_version'], equals(3));
+      expect(map['schema_version'], equals(4));
       final data = map['data'] as Map<String, dynamic>;
       expect((data['investments'] as List).length, equals(1));
       expect((data['investment_transactions'] as List).length, equals(1));
       expect((data['deposits'] as List).length, equals(1));
-      expect((data['savings_goals'] as List).length, equals(1));
       expect((data['purchase_plans'] as List).length, equals(1));
     });
 
@@ -95,15 +85,9 @@ void main() {
         tenorMonths: 6,
         startDate: DateTime(2026, 3, 1),
       );
-      await savingsGoalRepo.create(
-        name: 'Renovasi Rumah',
-        targetAmount: 100000000,
-        currentAmount: 25000000,
-      );
       await purchasePlanRepo.create(
         name: 'iPad Pro',
         targetAmount: 18000000,
-        allocatedAmount: 18000000,
         priority: PlanPriority.medium,
       );
 
@@ -114,7 +98,6 @@ void main() {
       final targetBackupService = BackupRestoreService(targetDb);
       final targetInvRepo = InvestmentRepository(targetDb);
       final targetDepRepo = DepositRepository(targetDb);
-      final targetGoalRepo = SavingsGoalRepository(targetDb);
       final targetPlanRepo = PurchasePlanRepository(targetDb);
 
       await targetBackupService.restoreFromJson(jsonStr);
@@ -129,15 +112,10 @@ void main() {
       expect(restoredDeps.first.name, equals('Deposito BRI 5.5%'));
       expect(restoredDeps.first.principal, equals(20000000));
 
-      final restoredGoals = await targetGoalRepo.getGoals();
-      expect(restoredGoals.length, equals(1));
-      expect(restoredGoals.first.name, equals('Renovasi Rumah'));
-      expect(restoredGoals.first.targetAmount, equals(100000000));
-
       final restoredPlans = await targetPlanRepo.getPlans();
       expect(restoredPlans.length, equals(1));
       expect(restoredPlans.first.name, equals('iPad Pro'));
-      expect(restoredPlans.first.status, equals(PlanStatus.achieved));
+      expect(restoredPlans.first.status, equals(PlanStatus.active));
 
       await targetDb.close();
     });

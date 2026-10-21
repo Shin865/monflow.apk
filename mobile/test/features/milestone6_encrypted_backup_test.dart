@@ -76,7 +76,7 @@ void main() {
       final plainMap = jsonDecode(plainJson) as Map<String, dynamic>;
 
       expect(plainMap['format'], equals('money-flow-backup'));
-      expect(plainMap['schema_version'], equals(3));
+      expect(plainMap['schema_version'], equals(4));
       final data = plainMap['data'] as Map<String, dynamic>;
       final accounts = data['accounts'] as List;
       expect(accounts.any((a) => a['name'] == 'Bank Jago'), isTrue);

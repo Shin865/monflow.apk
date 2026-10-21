@@ -70,3 +70,13 @@ String formatMonthYear(DateTime date) {
 String formatNumber(int number) {
   return NumberFormat('#,###', 'id_ID').format(number);
 }
+
+/// Format tanggal dan waktu.
+/// Contoh: formatDateTime(DateTime(2026, 10, 12, 14, 30)) → "12 Okt 2026 14:30"
+String formatDateTime(DateTime date) {
+  try {
+    return DateFormat('dd MMM yyyy HH:mm', 'id_ID').format(date);
+  } catch (_) {
+    return DateFormat('dd MMM yyyy HH:mm').format(date);
+  }
+}

@@ -2,9 +2,6 @@ import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:money_flow/core/database/database.dart';
 import 'package:money_flow/domain/rules/net_worth_rules.dart';
-import 'package:money_flow/domain/rules/forecast_rules.dart';
-import 'package:money_flow/data/repositories/budget_repository.dart';
-import 'package:money_flow/data/services/forecast_service.dart';
 
 /// DTO Ringkasan Arus Kas
 class CashFlowReport {
@@ -83,29 +80,6 @@ class AccountBalanceReportItem {
   });
 }
 
-/// DTO Anggaran vs Realisasi
-class BudgetVsActualItem {
-  final int categoryId;
-  final String categoryName;
-  final String? icon;
-  final int budgetAmount;
-  final int actualSpent;
-  final int remaining;
-  final double usedPercent;
-  final BudgetAlertStatus status;
-
-  const BudgetVsActualItem({
-    required this.categoryId,
-    required this.categoryName,
-    this.icon,
-    required this.budgetAmount,
-    required this.actualSpent,
-    required this.remaining,
-    required this.usedPercent,
-    required this.status,
-  });
-}
-
 /// DTO Laporan Keuangan Menyeluruh (Comprehensive Financial Report)
 class FinancialComprehensiveReport {
   final DateTime startDate;
@@ -114,7 +88,6 @@ class FinancialComprehensiveReport {
   final List<CategoryBreakdownItem> expenseCategories;
   final List<CategoryBreakdownItem> incomeSources;
   final List<AccountBalanceReportItem> accountBalances;
-  final List<BudgetVsActualItem> budgetRealizations;
   final int totalCashBalance;
   final int totalInvestmentsValue;
   final int totalInvestmentsCost;
@@ -123,7 +96,6 @@ class FinancialComprehensiveReport {
   final int totalDebts;
   final int totalAssets;
   final int netWorth;
-  final ForecastReport forecast;
 
   const FinancialComprehensiveReport({
     required this.startDate,
@@ -132,7 +104,6 @@ class FinancialComprehensiveReport {
     required this.expenseCategories,
     required this.incomeSources,
     required this.accountBalances,
-    required this.budgetRealizations,
     required this.totalCashBalance,
     required this.totalInvestmentsValue,
     required this.totalInvestmentsCost,
@@ -141,16 +112,14 @@ class FinancialComprehensiveReport {
     required this.totalDebts,
     required this.totalAssets,
     required this.netWorth,
-    required this.forecast,
   });
 }
 
 /// Service Laporan Keuangan berbasis agregasi database SQL efisien.
 class ReportService {
   final AppDatabase _db;
-  final ForecastService _forecastService;
 
-  ReportService(this._db, this._forecastService);
+  ReportService(this._db);
 
   /// Dapatkan laporan arus kas pada rentang tanggal tertentu.
   Future<CashFlowReport> getCashFlowReport({
@@ -326,65 +295,6 @@ class ReportService {
     }).toList();
   }
 
-  /// Dapatkan laporan anggaran versus realisasi untuk bulan tertentu.
-  Future<List<BudgetVsActualItem>> getBudgetVsActualReport({
-    required int year,
-    required int month,
-  }) async {
-    final start = DateTime(year, month, 1);
-    final end = DateTime(year, month + 1, 0, 23, 59, 59);
-
-    final budgetList = await (_db.select(_db.budgets)
-          ..where((b) => b.year.equals(year) & b.month.equals(month)))
-        .get();
-
-    final categoryMap = {
-      for (final c in await _db.select(_db.categories).get()) c.id: c
-    };
-
-    // Ambil pengeluaran per kategori di bulan ini
-    final expenses = await (_db.select(_db.transactions)
-          ..where((t) =>
-              t.type.equals(TransactionType.expense.index) &
-              t.date.isBiggerOrEqualValue(start) &
-              t.date.isSmallerOrEqualValue(end) &
-              t.isActual.equals(true)))
-        .get();
-
-    final spentByCategory = <int, int>{};
-    for (final t in expenses) {
-      spentByCategory[t.categoryId] =
-          (spentByCategory[t.categoryId] ?? 0) + t.amount;
-    }
-
-    final items = <BudgetVsActualItem>[];
-    for (final b in budgetList) {
-      final cat = categoryMap[b.categoryId];
-      final spent = spentByCategory[b.categoryId] ?? 0;
-      final remaining = (b.amount - spent > 0) ? b.amount - spent : 0;
-      final percent = b.amount > 0 ? (spent / b.amount) * 100.0 : 0.0;
-      final status = percent > 100.0
-          ? BudgetAlertStatus.exceeded
-          : (percent >= 80.0
-              ? BudgetAlertStatus.nearLimit
-              : BudgetAlertStatus.safe);
-
-      items.add(BudgetVsActualItem(
-        categoryId: b.categoryId,
-        categoryName: cat?.name ?? 'Kategori #${b.categoryId}',
-        icon: cat?.icon,
-        budgetAmount: b.amount,
-        actualSpent: spent,
-        remaining: remaining,
-        usedPercent: percent,
-        status: status,
-      ));
-    }
-
-    items.sort((a, b) => b.budgetAmount.compareTo(a.budgetAmount));
-    return items;
-  }
-
   /// Bangun laporan komprehensif lengkap.
   Future<FinancialComprehensiveReport> getComprehensiveReport({
     DateTime? startDate,
@@ -400,8 +310,6 @@ class ReportService {
     final incomeBreakdown = await getCategoryBreakdown(
         startDate: start, endDate: end, type: TransactionType.income);
     final accounts = await getAccountBalances();
-    final budgetVsActual =
-        await getBudgetVsActualReport(year: start.year, month: start.month);
 
     // Investasi aktif
     final invs = await (_db.select(_db.investments)
@@ -447,9 +355,6 @@ class ReportService {
       totalHutang: totalHutang,
     );
 
-    final forecast =
-        await _forecastService.generateForecast(projectionMonths: 6);
-
     return FinancialComprehensiveReport(
       startDate: start,
       endDate: end,
@@ -457,7 +362,6 @@ class ReportService {
       expenseCategories: expenseBreakdown,
       incomeSources: incomeBreakdown,
       accountBalances: accounts,
-      budgetRealizations: budgetVsActual,
       totalCashBalance: totalCash,
       totalInvestmentsValue: totalInvVal,
       totalInvestmentsCost: totalInvCost,
@@ -466,13 +370,11 @@ class ReportService {
       totalDebts: totalHutang,
       totalAssets: totalAssets,
       netWorth: netWorth,
-      forecast: forecast,
     );
   }
 }
 
 final reportServiceProvider = Provider<ReportService>((ref) {
   final db = ref.watch(databaseProvider);
-  final forecast = ref.watch(forecastServiceProvider);
-  return ReportService(db, forecast);
+  return ReportService(db);
 });

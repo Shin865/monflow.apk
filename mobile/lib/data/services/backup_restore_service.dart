@@ -60,7 +60,7 @@ class BackupPreview {
 class BackupRestoreService {
   final AppDatabase _db;
   static const String currentFormat = 'money-flow-backup';
-  static const int currentSchemaVersion = 3;
+  static const int currentSchemaVersion = 4;
 
   static bool _parseBool(dynamic val, {bool defaultValue = false}) {
     if (val == null) return defaultValue;
@@ -122,11 +122,14 @@ class BackupRestoreService {
     final purchasePlans = await (_db.select(_db.purchasePlans)
           ..orderBy([(pp) => OrderingTerm.asc(pp.id)]))
         .get();
+    final purchasePlanHistories = await (_db.select(_db.purchasePlanHistories)
+          ..orderBy([(h) => OrderingTerm.asc(h.id)]))
+        .get();
 
     final now = DateTime.now();
     final backupData = {
       'format': currentFormat,
-      'schema_version': 3,
+      'schema_version': currentSchemaVersion,
       'app': 'money_flow',
       'app_version': '1.0.0+1',
       'exported_at': now.toIso8601String(),
@@ -376,8 +379,19 @@ class BackupRestoreService {
                   'category': pp.category,
                   'url_link': pp.urlLink,
                   'description': pp.description,
+                  'transaction_id': pp.transactionId,
                   'created_at': pp.createdAt.toIso8601String(),
                   'updated_at': pp.updatedAt.toIso8601String(),
+                })
+            .toList(),
+        'purchase_plan_histories': purchasePlanHistories
+            .map((h) => {
+                  'id': h.id,
+                  'plan_id': h.planId,
+                  'action': h.action,
+                  'timestamp': h.timestamp.toIso8601String(),
+                  'details': h.details,
+                  'notes': h.notes,
                 })
             .toList(),
       },
@@ -642,6 +656,8 @@ class BackupRestoreService {
       final rawDeposits = (inner['deposits'] as List?) ?? [];
       final rawSavingsGoals = (inner['savings_goals'] as List?) ?? [];
       final rawPurchasePlans = (inner['purchase_plans'] as List?) ?? [];
+      final rawPurchasePlanHistories =
+          (inner['purchase_plan_histories'] as List?) ?? [];
 
       await _db.transaction(() async {
         // 1. Bersihkan seluruh data aktif secara berurutan sesuai relasi Foreign Key
@@ -649,6 +665,7 @@ class BackupRestoreService {
         await _db.delete(_db.investments).go();
         await _db.delete(_db.deposits).go();
         await _db.delete(_db.savingsGoals).go();
+        await _db.delete(_db.purchasePlanHistories).go();
         await _db.delete(_db.purchasePlans).go();
         await _db.delete(_db.billPayments).go();
         await _db.delete(_db.debtPayments).go();
@@ -986,8 +1003,24 @@ class BackupRestoreService {
                   category: Value(pp['category'] as String?),
                   urlLink: Value(pp['url_link'] as String?),
                   description: Value(pp['description'] as String?),
+                  transactionId: Value(pp['transaction_id'] as int?),
                   createdAt: Value(DateTime.parse(pp['created_at'] as String)),
                   updatedAt: Value(DateTime.parse(pp['updated_at'] as String)),
+                ),
+              );
+        }
+
+        // 17. Pulihkan Purchase Plan Histories
+        for (final item in rawPurchasePlanHistories) {
+          final h = item as Map<String, dynamic>;
+          await _db.into(_db.purchasePlanHistories).insert(
+                PurchasePlanHistoriesCompanion.insert(
+                  id: Value(h['id'] as int),
+                  planId: h['plan_id'] as int,
+                  action: h['action'] as String,
+                  timestamp: Value(DateTime.parse(h['timestamp'] as String)),
+                  details: Value(h['details'] as String?),
+                  notes: Value(h['notes'] as String?),
                 ),
               );
         }

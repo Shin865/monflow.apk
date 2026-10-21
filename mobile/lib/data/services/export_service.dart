@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:csv/csv.dart';
 import 'package:drift/drift.dart';
+import 'package:excel/excel.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
@@ -417,6 +418,353 @@ class ExportService {
       return ExportResult(
         success: false,
         message: 'Gagal membuat laporan PDF: $e',
+      );
+    }
+  }
+
+  /// Ekspor Laporan Keuangan Komprehensif ke format Excel (.xlsx) dengan 7 sheet terstruktur.
+  Future<ExportResult> exportFinancialReportToExcel({
+    required DateTime startDate,
+    required DateTime endDate,
+    Directory? outputDir,
+  }) async {
+    if (startDate.isAfter(endDate)) {
+      return const ExportResult(
+        success: false,
+        message: 'Tanggal mulai tidak boleh lebih besar dari tanggal berakhir.',
+      );
+    }
+
+    try {
+      final report = await _reportService.getComprehensiveReport(
+        startDate: startDate,
+        endDate: endDate,
+      );
+
+      final excel = Excel.createExcel();
+
+      // ----------------------------------------------------
+      // SHEET 1: RINGKASAN KEUANGAN
+      // ----------------------------------------------------
+      final sSummary = excel['Ringkasan Keuangan'];
+      excel.delete('Sheet1'); // Hapus sheet default
+
+      sSummary.appendRow([TextCellValue('LAPORAN KEUANGAN MONEY FLOW')]);
+      sSummary.appendRow([
+        TextCellValue(
+            'Periode: ${formatDate(startDate)} s/d ${formatDate(endDate)}')
+      ]);
+      sSummary.appendRow(
+          [TextCellValue('Waktu Cetak: ${formatDateTime(DateTime.now())}')]);
+      sSummary.appendRow([TextCellValue('')]);
+
+      sSummary.appendRow([
+        TextCellValue('1. ARUS KAS PERIODE BERJALAN'),
+        TextCellValue('Nominal (Rp)')
+      ]);
+      sSummary.appendRow([
+        TextCellValue('Total Pemasukan'),
+        IntCellValue(report.cashFlow.totalIncome)
+      ]);
+      sSummary.appendRow([
+        TextCellValue('Total Pengeluaran'),
+        IntCellValue(report.cashFlow.totalExpense)
+      ]);
+      sSummary.appendRow([
+        TextCellValue('Arus Kas Bersih (Net Cash Flow)'),
+        IntCellValue(report.cashFlow.netCashFlow)
+      ]);
+      sSummary.appendRow([
+        TextCellValue('Jumlah Transaksi Tercatat'),
+        IntCellValue(report.cashFlow.transactionCount)
+      ]);
+      sSummary.appendRow([TextCellValue('')]);
+
+      sSummary.appendRow([
+        TextCellValue('2. POSISI KEKAYAAN BERSIH (NET WORTH)'),
+        TextCellValue('Nominal (Rp)')
+      ]);
+      sSummary.appendRow([
+        TextCellValue('Total Saldo Kas & Bank'),
+        IntCellValue(report.totalCashBalance)
+      ]);
+      sSummary.appendRow([
+        TextCellValue('Total Portofolio Investasi'),
+        IntCellValue(report.totalInvestmentsValue)
+      ]);
+      sSummary.appendRow([
+        TextCellValue('Total Pokok Deposito'),
+        IntCellValue(report.totalDepositsPrincipal)
+      ]);
+      sSummary.appendRow([
+        TextCellValue('Total Piutang Berjalan'),
+        IntCellValue(report.totalReceivables)
+      ]);
+      sSummary.appendRow([
+        TextCellValue('Total Seluruh Aset'),
+        IntCellValue(report.totalAssets)
+      ]);
+      sSummary.appendRow([
+        TextCellValue('Total Kewajiban (Hutang)'),
+        IntCellValue(report.totalDebts)
+      ]);
+      sSummary.appendRow([
+        TextCellValue('Kekayaan Bersih (Net Worth)'),
+        IntCellValue(report.netWorth)
+      ]);
+
+      // ----------------------------------------------------
+      // SHEET 2: RIWAYAT TRANSAKSI
+      // ----------------------------------------------------
+      final sTxns = excel['Riwayat Transaksi'];
+      sTxns.appendRow([
+        TextCellValue('ID'),
+        TextCellValue('Tanggal'),
+        TextCellValue('Tipe Transaksi'),
+        TextCellValue('Akun / Dompet'),
+        TextCellValue('Kategori'),
+        TextCellValue('Nominal (Rp)'),
+        TextCellValue('Keterangan'),
+        TextCellValue('Catatan'),
+      ]);
+
+      final txQuery = _db.select(_db.transactions).join([
+        leftOuterJoin(_db.accounts,
+            _db.accounts.id.equalsExp(_db.transactions.accountId)),
+        leftOuterJoin(_db.categories,
+            _db.categories.id.equalsExp(_db.transactions.categoryId)),
+      ])
+        ..where(_db.transactions.date.isBiggerOrEqualValue(startDate) &
+            _db.transactions.date.isSmallerOrEqualValue(endDate) &
+            _db.transactions.isActual.equals(true))
+        ..orderBy([OrderingTerm.desc(_db.transactions.date)]);
+
+      final txRows = await txQuery.get();
+      for (final r in txRows) {
+        final t = r.readTable(_db.transactions);
+        final a = r.readTableOrNull(_db.accounts);
+        final c = r.readTableOrNull(_db.categories);
+
+        sTxns.appendRow([
+          IntCellValue(t.id),
+          TextCellValue(formatDate(t.date)),
+          TextCellValue(t.type == TransactionType.income
+              ? 'Pemasukan'
+              : (t.type == TransactionType.expense
+                  ? 'Pengeluaran'
+                  : (t.type == TransactionType.refund
+                      ? 'Pengembalian'
+                      : 'Penyesuaian'))),
+          TextCellValue(a?.name ?? '-'),
+          TextCellValue(c?.name ?? '-'),
+          IntCellValue(t.amount),
+          TextCellValue(sanitizeForCsv(t.description)),
+          TextCellValue(sanitizeForCsv(t.notes)),
+        ]);
+      }
+
+      // ----------------------------------------------------
+      // SHEET 3: RINGKASAN BULANAN
+      // ----------------------------------------------------
+      final sMonthly = excel['Ringkasan Bulanan'];
+      sMonthly.appendRow([
+        TextCellValue('Bulan'),
+        TextCellValue('Total Pemasukan (Rp)'),
+        TextCellValue('Total Pengeluaran (Rp)'),
+        TextCellValue('Arus Kas Bersih (Rp)'),
+      ]);
+
+      for (final m in report.cashFlow.monthlyTrends) {
+        sMonthly.appendRow([
+          TextCellValue(m.monthLabel),
+          IntCellValue(m.income),
+          IntCellValue(m.expense),
+          IntCellValue(m.netFlow),
+        ]);
+      }
+
+      // ----------------------------------------------------
+      // SHEET 4: AKUN DAN SALDO
+      // ----------------------------------------------------
+      final sAccounts = excel['Akun dan Saldo'];
+      sAccounts.appendRow([
+        TextCellValue('ID'),
+        TextCellValue('Nama Akun / Dompet'),
+        TextCellValue('Tipe Akun'),
+        TextCellValue('Saldo Saat Ini (Rp)'),
+        TextCellValue('Status'),
+      ]);
+
+      final allAccounts = await (_db.select(_db.accounts)
+            ..orderBy([(a) => OrderingTerm.asc(a.id)]))
+          .get();
+
+      for (final a in allAccounts) {
+        sAccounts.appendRow([
+          IntCellValue(a.id),
+          TextCellValue(a.name),
+          TextCellValue(a.type.name.toUpperCase()),
+          IntCellValue(a.balance),
+          TextCellValue(a.isActive ? 'Aktif' : 'Diarsipkan'),
+        ]);
+      }
+
+      // ----------------------------------------------------
+      // SHEET 5: INVESTASI
+      // ----------------------------------------------------
+      final sInvs = excel['Tabungan dan Investasi'];
+      sInvs.appendRow([
+        TextCellValue('ID'),
+        TextCellValue('Nama Instrumen'),
+        TextCellValue('Tipe Investasi'),
+        TextCellValue('Platform / Broker'),
+        TextCellValue('Modal Awal (Rp)'),
+        TextCellValue('Nilai Pasar Terkini (Rp)'),
+        TextCellValue('Unit / Lot'),
+        TextCellValue('Tanggal Beli'),
+        TextCellValue('Status'),
+      ]);
+
+      final allInvs = await (_db.select(_db.investments)
+            ..orderBy([(i) => OrderingTerm.asc(i.id)]))
+          .get();
+
+      for (final inv in allInvs) {
+        sInvs.appendRow([
+          IntCellValue(inv.id),
+          TextCellValue(inv.name),
+          TextCellValue(inv.type.name.toUpperCase()),
+          TextCellValue(inv.platform ?? '-'),
+          IntCellValue(inv.initialCost),
+          IntCellValue(inv.currentValue),
+          DoubleCellValue(inv.units ?? 0.0),
+          TextCellValue(
+              inv.purchaseDate != null ? formatDate(inv.purchaseDate!) : '-'),
+          TextCellValue(inv.isActive ? 'Aktif' : 'Nonaktif'),
+        ]);
+      }
+
+      // ----------------------------------------------------
+      // SHEET 6: DEPOSITO
+      // ----------------------------------------------------
+      final sDeps = excel['Deposito'];
+      sDeps.appendRow([
+        TextCellValue('ID'),
+        TextCellValue('Nama Deposito'),
+        TextCellValue('Bank / Institusi'),
+        TextCellValue('Nominal Pokok (Rp)'),
+        TextCellValue('Suku Bunga (% p.a.)'),
+        TextCellValue('Tenor (Bulan)'),
+        TextCellValue('Pajak Bunga (%)'),
+        TextCellValue('Tanggal Mulai'),
+        TextCellValue('Jatuh Tempo'),
+        TextCellValue('Status'),
+      ]);
+
+      final allDeps = await (_db.select(_db.deposits)
+            ..orderBy([(d) => OrderingTerm.asc(d.id)]))
+          .get();
+
+      for (final dep in allDeps) {
+        sDeps.appendRow([
+          IntCellValue(dep.id),
+          TextCellValue(dep.name),
+          TextCellValue(dep.bankName ?? '-'),
+          IntCellValue(dep.principal),
+          DoubleCellValue(dep.annualRateBps / 100.0),
+          IntCellValue(dep.tenorMonths),
+          DoubleCellValue(dep.taxRateBps / 100.0),
+          TextCellValue(formatDate(dep.startDate)),
+          TextCellValue(formatDate(dep.maturityDate)),
+          TextCellValue(dep.status.name.toUpperCase()),
+        ]);
+      }
+
+      // ----------------------------------------------------
+      // SHEET 7: UTANG PIUTANG DAN TAGIHAN
+      // ----------------------------------------------------
+      final sDebts = excel['Utang Piutang & Tagihan'];
+      sDebts.appendRow([TextCellValue('A. DAFTAR HUTANG & PIUTANG')]);
+      sDebts.appendRow([
+        TextCellValue('ID'),
+        TextCellValue('Jenis'),
+        TextCellValue('Nama / Keperluan'),
+        TextCellValue('Pihak Terkait'),
+        TextCellValue('Pokok Awal (Rp)'),
+        TextCellValue('Sisa Saldo (Rp)'),
+        TextCellValue('Jatuh Tempo'),
+        TextCellValue('Status'),
+      ]);
+
+      final allDebts = await (_db.select(_db.debts)
+            ..orderBy([(d) => OrderingTerm.asc(d.id)]))
+          .get();
+
+      for (final d in allDebts) {
+        sDebts.appendRow([
+          IntCellValue(d.id),
+          TextCellValue(d.type == DebtType.hutang
+              ? 'Hutang (Kewajiban)'
+              : 'Piutang (Hak)'),
+          TextCellValue(d.name),
+          TextCellValue(d.person ?? '-'),
+          IntCellValue(d.totalAmount),
+          IntCellValue(d.remainingAmount),
+          TextCellValue(d.dueDate != null ? formatDate(d.dueDate!) : '-'),
+          TextCellValue(d.status.name.toUpperCase()),
+        ]);
+      }
+
+      sDebts.appendRow([TextCellValue('')]);
+      sDebts.appendRow([TextCellValue('B. DAFTAR TAGIHAN (BILLS)')]);
+      sDebts.appendRow([
+        TextCellValue('ID'),
+        TextCellValue('Nama Tagihan'),
+        TextCellValue('Nominal (Rp)'),
+        TextCellValue('Jatuh Tempo'),
+        TextCellValue('Frekuensi'),
+        TextCellValue('Status'),
+      ]);
+
+      final allBills = await (_db.select(_db.bills)
+            ..orderBy([(b) => OrderingTerm.asc(b.id)]))
+          .get();
+
+      for (final b in allBills) {
+        sDebts.appendRow([
+          IntCellValue(b.id),
+          TextCellValue(b.name),
+          IntCellValue(b.amount),
+          TextCellValue(formatDate(b.dueDate)),
+          TextCellValue(b.frequency.name.toUpperCase()),
+          TextCellValue(b.status.name.toUpperCase()),
+        ]);
+      }
+
+      final dir = await _resolveDirectory(outputDir);
+      final sStr =
+          '${startDate.year}${startDate.month.toString().padLeft(2, '0')}${startDate.day.toString().padLeft(2, '0')}';
+      final eStr =
+          '${endDate.year}${endDate.month.toString().padLeft(2, '0')}${endDate.day.toString().padLeft(2, '0')}';
+      final fileName = 'Laporan_Keuangan_MoneyFlow_${sStr}_sd_$eStr.xlsx';
+      final file = File(p.join(dir.path, fileName));
+
+      final bytes = excel.encode();
+      if (bytes != null) {
+        await file.writeAsBytes(bytes);
+      } else {
+        throw StateError('Gagal melakukan encoding file Excel');
+      }
+
+      return ExportResult(
+        success: true,
+        message: 'Laporan keuangan Excel berhasil dibuat: $fileName',
+        filePath: file.path,
+      );
+    } catch (e) {
+      return ExportResult(
+        success: false,
+        message: 'Gagal membuat laporan Excel: $e',
       );
     }
   }
