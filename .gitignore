@@ -91,15 +91,10 @@ doc/
 documentation/
 
 # ==========================================
-# Test Files & Testing Data
+# Test Coverage & Temp Data
 # ==========================================
-test/
-mobile/test/
-**/test/
-*_test.dart
-*.test.dart
+coverage/
+mobile/coverage/
 test_data/
 test-data/
 fixtures/
-coverage/
-mobile/coverage/
