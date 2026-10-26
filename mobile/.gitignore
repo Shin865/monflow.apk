@@ -30,4 +30,11 @@ Thumbs.db
 .pub/
 
 # Test
+test/
+*_test.dart
 coverage/
+
+# Docs & Skills
+docs/
+SKILL.md
+skill.md

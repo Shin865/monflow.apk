@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:money_flow/core/formatting/thousand_separator_formatter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -80,8 +82,15 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen>
                 TextFormField(
                   controller: amountController,
                   keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    ThousandSeparatorInputFormatter(),
+                  ],
                   decoration: const InputDecoration(
-                      labelText: 'Total Pokok (Rp) *', prefixText: 'Rp '),
+                    labelText: 'Total Pokok (Rp) *',
+                    hintText: 'Masukkan nominal',
+                    prefixText: 'Rp ',
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Row(
@@ -90,9 +99,15 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen>
                       child: TextFormField(
                         controller: installmentController,
                         keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          ThousandSeparatorInputFormatter(),
+                        ],
                         decoration: const InputDecoration(
-                            labelText: 'Cicilan/Bulan (Opsional)',
-                            prefixText: 'Rp '),
+                          labelText: 'Cicilan/Bulan (Opsional)',
+                          hintText: 'Masukkan nominal',
+                          prefixText: 'Rp ',
+                        ),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -290,8 +305,15 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen>
                 TextFormField(
                   controller: amountController,
                   keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    ThousandSeparatorInputFormatter(),
+                  ],
                   decoration: const InputDecoration(
-                      labelText: 'Nominal (Rp) *', prefixText: 'Rp '),
+                    labelText: 'Nominal (Rp) *',
+                    hintText: 'Masukkan nominal',
+                    prefixText: 'Rp ',
+                  ),
                 ),
                 const SizedBox(height: 12),
                 ListTile(

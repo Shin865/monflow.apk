@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:money_flow/core/database/database.dart';
-import 'package:money_flow/core/formatting/formatters.dart';
 import 'package:money_flow/core/theme/app_theme.dart';
 import 'package:money_flow/data/repositories/account_repository.dart';
+import 'package:money_flow/core/providers/balance_visibility_provider.dart';
 
 /// Layar daftar akun/dompet.
 class AccountsScreen extends ConsumerWidget {
@@ -14,6 +14,7 @@ class AccountsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final accountsStream =
         ref.watch(accountRepositoryProvider).watchActiveAccounts();
+    final isBalanceHidden = ref.watch(balanceVisibilityProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -91,13 +92,38 @@ class AccountsScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Total Saldo',
-                      style: TextStyle(color: Colors.white70, fontSize: 14),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Total Saldo',
+                          style: TextStyle(color: Colors.white70, fontSize: 14),
+                        ),
+                        IconButton(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          icon: Icon(
+                            isBalanceHidden
+                                ? Icons.visibility_off_rounded
+                                : Icons.visibility_rounded,
+                            color: Colors.white70,
+                            size: 20,
+                          ),
+                          tooltip: isBalanceHidden
+                              ? 'Tampilkan Saldo'
+                              : 'Sembunyikan Saldo',
+                          onPressed: () => ref
+                              .read(balanceVisibilityProvider.notifier)
+                              .toggle(),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      formatRupiah(totalBalance),
+                      BalanceVisibilityNotifier.formatOrMask(
+                        totalBalance,
+                        isHidden: isBalanceHidden,
+                      ),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 28,
@@ -133,7 +159,7 @@ class AccountsScreen extends ConsumerWidget {
   }
 }
 
-class _AccountGroup extends StatelessWidget {
+class _AccountGroup extends ConsumerWidget {
   final AccountType type;
   final List<Account> accounts;
 
@@ -170,8 +196,9 @@ class _AccountGroup extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final subtotal = accounts.fold<int>(0, (sum, a) => sum + a.balance);
+    final isBalanceHidden = ref.watch(balanceVisibilityProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -192,7 +219,10 @@ class _AccountGroup extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                formatRupiah(subtotal),
+                BalanceVisibilityNotifier.formatOrMask(
+                  subtotal,
+                  isHidden: isBalanceHidden,
+                ),
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -219,6 +249,7 @@ class _AccountCard extends ConsumerWidget {
     final color = account.color != null
         ? Color(int.parse(account.color!.replaceFirst('#', '0xFF')))
         : AppColors.primary;
+    final isBalanceHidden = ref.watch(balanceVisibilityProvider);
 
     return Dismissible(
       key: Key('account_${account.id}'),
@@ -311,7 +342,10 @@ class _AccountCard extends ConsumerWidget {
               ),
             ),
             Text(
-              formatRupiah(account.balance),
+              BalanceVisibilityNotifier.formatOrMask(
+                account.balance,
+                isHidden: isBalanceHidden,
+              ),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,

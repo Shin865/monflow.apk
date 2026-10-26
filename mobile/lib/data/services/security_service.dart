@@ -46,13 +46,27 @@ class SecurityService extends ChangeNotifier {
   static const int lockoutSeconds = 30;
 
   bool _isAppLocked = false;
+  bool _isInitialized = false;
   bool _isCriticalTransactionActive = false;
 
   bool get isAppLocked => _isAppLocked;
+  bool get isInitialized => _isInitialized;
   bool get isCriticalTransactionActive => _isCriticalTransactionActive;
 
   SecurityService(this._db, [LocalAuthentication? localAuth])
       : _localAuth = localAuth ?? LocalAuthentication();
+
+  /// Inisialisasi status keamanan saat startup aplikasi
+  Future<void> initSecurityState() async {
+    final pinEnabled = await isPinEnabled();
+    if (pinEnabled) {
+      _isAppLocked = true;
+    } else {
+      _isAppLocked = false;
+    }
+    _isInitialized = true;
+    notifyListeners();
+  }
 
   /// Tandai transaksi database kritis sedang berjalan (jangan kunci layar di tengah proses).
   void setCriticalTransactionActive(bool active) {

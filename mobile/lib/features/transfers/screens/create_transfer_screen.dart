@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:money_flow/core/formatting/thousand_separator_formatter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:money_flow/core/database/database.dart';
@@ -242,18 +243,24 @@ class _CreateTransferScreenState extends ConsumerState<CreateTransferScreen> {
                   TextFormField(
                     controller: _amountController,
                     decoration: const InputDecoration(
-                      hintText: '0',
+                      hintText: 'Masukkan nominal',
                       prefixText: 'Rp ',
                       prefixIcon: Icon(Icons.swap_horiz_rounded,
                           color: AppColors.transfer),
                     ),
                     keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      ThousandSeparatorInputFormatter(),
+                    ],
                     style: const TextStyle(
                         fontSize: 24, fontWeight: FontWeight.w700),
                     validator: (v) {
-                      if (v == null || v.isEmpty) return 'Jumlah wajib diisi';
-                      final amount = int.tryParse(v.replaceAll('.', ''));
+                      if (v == null || v.trim().isEmpty) {
+                        return 'Jumlah wajib diisi';
+                      }
+                      final amount = int.tryParse(
+                          v.replaceAll('.', '').replaceAll(',', ''));
                       if (amount == null || amount <= 0) {
                         return 'Jumlah harus lebih dari 0';
                       }

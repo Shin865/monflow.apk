@@ -298,6 +298,13 @@ class DepositRepository {
       ),
     );
   }
+
+  /// Hapus record deposito secara permanen dari database.
+  Future<void> delete(int id) async {
+    return _db.transaction(() async {
+      await (_db.delete(_db.deposits)..where((d) => d.id.equals(id))).go();
+    });
+  }
 }
 
 final depositRepositoryProvider = Provider<DepositRepository>((ref) {

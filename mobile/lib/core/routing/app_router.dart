@@ -17,6 +17,7 @@ import 'package:money_flow/features/planning/screens/planning_screen.dart';
 import 'package:money_flow/core/routing/shell_screen.dart';
 
 import 'package:money_flow/features/reports/screens/reports_screen.dart';
+import 'package:money_flow/features/settings/screens/about_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -63,7 +64,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/transactions/create',
         name: 'create_transaction',
-        builder: (context, state) => const CreateTransactionScreen(),
+        builder: (context, state) {
+          final editId = state.extra as int?;
+          return CreateTransactionScreen(editTransactionId: editId);
+        },
+      ),
+      GoRoute(
+        path: '/transactions/edit',
+        name: 'edit_transaction',
+        builder: (context, state) {
+          final editId = state.extra as int?;
+          return CreateTransactionScreen(editTransactionId: editId);
+        },
       ),
       GoRoute(
         path: '/transfers/create',
@@ -115,6 +127,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/reports',
         name: 'reports',
         builder: (context, state) => const ReportsScreen(),
+      ),
+      GoRoute(
+        path: '/about',
+        name: 'about',
+        builder: (context, state) => const AboutScreen(),
       ),
     ],
   );

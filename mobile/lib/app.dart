@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:money_flow/core/theme/app_theme.dart';
 import 'package:money_flow/core/theme/theme_provider.dart';
 import 'package:money_flow/core/routing/app_router.dart';
+import 'package:money_flow/core/widgets/splash_screen.dart';
 import 'package:money_flow/data/services/security_service.dart';
 import 'package:money_flow/features/security/screens/pin_lock_screen.dart';
 
@@ -16,14 +18,23 @@ class MoneyFlowApp extends ConsumerStatefulWidget {
 
 class _MoneyFlowAppState extends ConsumerState<MoneyFlowApp>
     with WidgetsBindingObserver {
+  bool _showSplash = true;
+  Timer? _splashTimer;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _splashTimer = Timer(const Duration(milliseconds: 1200), () {
+      if (mounted) {
+        setState(() => _showSplash = false);
+      }
+    });
   }
 
   @override
   void dispose() {
+    _splashTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -76,9 +87,21 @@ class _MoneyFlowAppState extends ConsumerState<MoneyFlowApp>
         return Stack(
           children: [
             if (child != null) child,
-            if (sec.isAppLocked)
+
+            // PIN lock overlay — tampil di atas konten saat app terkunci
+            if (!_showSplash && sec.isAppLocked)
               const Positioned.fill(
                 child: PinLockScreen(),
+              ),
+
+            // Splash screen — tampil saat startup, transisi fade-out halus
+            if (_showSplash)
+              Positioned.fill(
+                child: AnimatedOpacity(
+                  opacity: _showSplash ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 400),
+                  child: const SplashScreen(),
+                ),
               ),
           ],
         );

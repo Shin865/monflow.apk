@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:money_flow/core/formatting/thousand_separator_formatter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:money_flow/core/database/database.dart';
@@ -30,8 +32,8 @@ class _DebtDetailScreenState extends ConsumerState<DebtDetailScreen> {
     final amountController = TextEditingController(text: defaultAmt.toString());
     final principalController =
         TextEditingController(text: defaultAmt.toString());
-    final interestController = TextEditingController(text: '0');
-    final feeController = TextEditingController(text: '0');
+    final interestController = TextEditingController();
+    final feeController = TextEditingController();
     final notesController = TextEditingController();
     DateTime payDate = DateTime.now();
     int? selectedAccountId = item.debt.accountId;
@@ -83,8 +85,15 @@ class _DebtDetailScreenState extends ConsumerState<DebtDetailScreen> {
                 TextFormField(
                   controller: amountController,
                   keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    ThousandSeparatorInputFormatter(),
+                  ],
                   decoration: const InputDecoration(
-                      labelText: 'Total Transaksi (Rp) *', prefixText: 'Rp '),
+                    labelText: 'Total Transaksi (Rp) *',
+                    hintText: 'Masukkan nominal',
+                    prefixText: 'Rp ',
+                  ),
                   onChanged: (val) {
                     final total =
                         int.tryParse(val.replaceAll(RegExp(r'[^0-9]'), '')) ??
@@ -106,8 +115,15 @@ class _DebtDetailScreenState extends ConsumerState<DebtDetailScreen> {
                       child: TextFormField(
                         controller: principalController,
                         keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          ThousandSeparatorInputFormatter(),
+                        ],
                         decoration: const InputDecoration(
-                            labelText: 'Alokasi Pokok (Rp)', prefixText: 'Rp '),
+                          labelText: 'Alokasi Pokok (Rp)',
+                          hintText: 'Masukkan nominal',
+                          prefixText: 'Rp ',
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -115,8 +131,15 @@ class _DebtDetailScreenState extends ConsumerState<DebtDetailScreen> {
                       child: TextFormField(
                         controller: interestController,
                         keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          ThousandSeparatorInputFormatter(),
+                        ],
                         decoration: const InputDecoration(
-                            labelText: 'Bunga (Rp)', prefixText: 'Rp '),
+                          labelText: 'Bunga (Rp)',
+                          hintText: '0',
+                          prefixText: 'Rp ',
+                        ),
                       ),
                     ),
                   ],
@@ -125,8 +148,15 @@ class _DebtDetailScreenState extends ConsumerState<DebtDetailScreen> {
                 TextFormField(
                   controller: feeController,
                   keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    ThousandSeparatorInputFormatter(),
+                  ],
                   decoration: const InputDecoration(
-                      labelText: 'Biaya / Denda (Rp)', prefixText: 'Rp '),
+                    labelText: 'Biaya / Denda (Rp)',
+                    hintText: '0',
+                    prefixText: 'Rp ',
+                  ),
                 ),
                 const SizedBox(height: 12),
                 ListTile(

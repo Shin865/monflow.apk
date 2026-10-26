@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:money_flow/core/formatting/thousand_separator_formatter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:money_flow/core/database/database.dart';
@@ -9,9 +10,11 @@ import 'package:money_flow/data/repositories/account_repository.dart';
 import 'package:money_flow/data/repositories/category_repository.dart';
 import 'package:money_flow/data/repositories/transaction_repository.dart';
 
-/// Layar catat transaksi baru (pemasukan/pengeluaran/refund).
+/// Layar catat atau edit transaksi (pemasukan/pengeluaran/refund).
 class CreateTransactionScreen extends ConsumerStatefulWidget {
-  const CreateTransactionScreen({super.key});
+  final int? editTransactionId;
+
+  const CreateTransactionScreen({super.key, this.editTransactionId});
 
   @override
   ConsumerState<CreateTransactionScreen> createState() =>
@@ -46,12 +49,35 @@ class _CreateTransactionScreenState
     final categories =
         await ref.read(categoryRepositoryProvider).getActiveCategories();
 
+    Transaction? editTxn;
+    if (widget.editTransactionId != null) {
+      editTxn = await ref
+          .read(transactionRepositoryProvider)
+          .getById(widget.editTransactionId!);
+    }
+
     if (mounted) {
       setState(() {
         _accounts = accounts;
         _categories = categories;
-        if (accounts.isNotEmpty) _selectedAccountId = accounts.first.id;
-        _updateCategoriesForType();
+
+        if (editTxn != null) {
+          _selectedType = editTxn.type;
+          _selectedAccountId = editTxn.accountId;
+          _selectedCategoryId = editTxn.categoryId;
+          _selectedDate = editTxn.date;
+          _amountController.text = ThousandSeparatorInputFormatter()
+              .formatEditUpdate(
+                const TextEditingValue(),
+                TextEditingValue(text: editTxn.amount.toString()),
+              )
+              .text;
+          _descController.text = editTxn.description ?? '';
+          _notesController.text = editTxn.notes ?? '';
+        } else {
+          if (accounts.isNotEmpty) _selectedAccountId = accounts.first.id;
+          _updateCategoriesForType();
+        }
       });
     }
   }
@@ -134,34 +160,61 @@ class _CreateTransactionScreenState
         throw ArgumentError('Jumlah harus lebih dari 0');
       }
 
-      await ref.read(transactionRepositoryProvider).create(
-            type: _selectedType,
-            accountId: _selectedAccountId!,
-            categoryId: _selectedCategoryId!,
-            amount: amount,
-            date: _selectedDate,
-            description: _descController.text.trim().isEmpty
-                ? null
-                : _descController.text.trim(),
-            notes: _notesController.text.trim().isEmpty
-                ? null
-                : _notesController.text.trim(),
+      if (widget.editTransactionId != null) {
+        await ref.read(transactionRepositoryProvider).updateTransaction(
+              txnId: widget.editTransactionId!,
+              type: _selectedType,
+              accountId: _selectedAccountId,
+              categoryId: _selectedCategoryId,
+              amount: amount,
+              date: _selectedDate,
+              description: _descController.text.trim().isEmpty
+                  ? null
+                  : _descController.text.trim(),
+              notes: _notesController.text.trim().isEmpty
+                  ? null
+                  : _notesController.text.trim(),
+            );
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Perubahan transaksi berhasil disimpan! ✅'),
+              backgroundColor: AppColors.income,
+            ),
           );
+          context.pop();
+        }
+      } else {
+        await ref.read(transactionRepositoryProvider).create(
+              type: _selectedType,
+              accountId: _selectedAccountId!,
+              categoryId: _selectedCategoryId!,
+              amount: amount,
+              date: _selectedDate,
+              description: _descController.text.trim().isEmpty
+                  ? null
+                  : _descController.text.trim(),
+              notes: _notesController.text.trim().isEmpty
+                  ? null
+                  : _notesController.text.trim(),
+            );
 
-      if (mounted) {
-        final typeLabel = _selectedType == TransactionType.income
-            ? 'Pemasukan'
-            : _selectedType == TransactionType.expense
-                ? 'Pengeluaran'
-                : 'Refund';
+        if (mounted) {
+          final typeLabel = _selectedType == TransactionType.income
+              ? 'Pemasukan'
+              : _selectedType == TransactionType.expense
+                  ? 'Pengeluaran'
+                  : 'Refund';
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('$typeLabel berhasil dicatat! ✅'),
-            backgroundColor: AppColors.income,
-          ),
-        );
-        context.pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$typeLabel berhasil dicatat! ✅'),
+              backgroundColor: AppColors.income,
+            ),
+          );
+          context.pop();
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -189,7 +242,9 @@ class _CreateTransactionScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Catat Transaksi'),
+        title: Text(widget.editTransactionId != null
+            ? 'Ubah Transaksi'
+            : 'Catat Transaksi'),
         leading: IconButton(
           icon: const Icon(Icons.close_rounded),
           onPressed: () => context.pop(),
@@ -261,7 +316,7 @@ class _CreateTransactionScreenState
             TextFormField(
               controller: _amountController,
               decoration: InputDecoration(
-                hintText: '0',
+                hintText: 'Masukkan nominal',
                 prefixText: 'Rp ',
                 prefixIcon: Icon(
                   Icons.attach_money_rounded,
@@ -273,11 +328,15 @@ class _CreateTransactionScreenState
                 ),
               ),
               keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                ThousandSeparatorInputFormatter(),
+              ],
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
               validator: (v) {
-                if (v == null || v.isEmpty) return 'Jumlah wajib diisi';
-                final amount = int.tryParse(v.replaceAll('.', ''));
+                if (v == null || v.trim().isEmpty) return 'Jumlah wajib diisi';
+                final amount =
+                    int.tryParse(v.replaceAll('.', '').replaceAll(',', ''));
                 if (amount == null || amount <= 0) {
                   return 'Jumlah harus lebih dari 0';
                 }
@@ -515,11 +574,13 @@ class _CreateTransactionScreenState
                             strokeWidth: 2, color: Colors.white),
                       )
                     : Text(
-                        _selectedType == TransactionType.income
-                            ? 'Simpan Pemasukan'
-                            : _selectedType == TransactionType.expense
-                                ? 'Simpan Pengeluaran'
-                                : 'Simpan Refund',
+                        widget.editTransactionId != null
+                            ? 'Simpan Perubahan'
+                            : (_selectedType == TransactionType.income
+                                ? 'Simpan Pemasukan'
+                                : _selectedType == TransactionType.expense
+                                    ? 'Simpan Pengeluaran'
+                                    : 'Simpan Refund'),
                       ),
               ),
             ),

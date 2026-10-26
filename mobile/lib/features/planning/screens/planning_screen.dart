@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:money_flow/core/formatting/thousand_separator_formatter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:money_flow/core/database/database.dart';
 import 'package:money_flow/core/formatting/formatters.dart';
@@ -572,9 +574,13 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                 TextField(
                   controller: priceCtrl,
                   keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    ThousandSeparatorInputFormatter(),
+                  ],
                   decoration: const InputDecoration(
                     labelText: 'Harga / Nominal Rencana (Rp) *',
-                    hintText: 'Misal: 15.000.000',
+                    hintText: 'Masukkan nominal',
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -722,8 +728,13 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                 TextField(
                   controller: priceCtrl,
                   keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    ThousandSeparatorInputFormatter(),
+                  ],
                   decoration: const InputDecoration(
                     labelText: 'Harga / Nominal Rencana (Rp) *',
+                    hintText: 'Masukkan nominal',
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -894,6 +905,10 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                 TextField(
                   controller: amountCtrl,
                   keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    ThousandSeparatorInputFormatter(),
+                  ],
                   decoration: const InputDecoration(
                     labelText: 'Nominal Aktual Pengeluaran (Rp) *',
                   ),

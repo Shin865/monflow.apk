@@ -74,3 +74,32 @@ mobile/*.iml
 *.sw?
 *.bak
 *.log
+
+# ==========================================
+# Skill & Assistant Prompts
+# ==========================================
+[sS][kK][iI][lL][lL].[mM][dD]
+SKILL.md
+skill.md
+.taste-skill/
+
+# ==========================================
+# Documentation & Specs
+# ==========================================
+docs/
+doc/
+documentation/
+
+# ==========================================
+# Test Files & Testing Data
+# ==========================================
+test/
+mobile/test/
+**/test/
+*_test.dart
+*.test.dart
+test_data/
+test-data/
+fixtures/
+coverage/
+mobile/coverage/

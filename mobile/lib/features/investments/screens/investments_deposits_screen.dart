@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:money_flow/core/formatting/thousand_separator_formatter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:money_flow/core/database/database.dart';
 import 'package:money_flow/core/formatting/formatters.dart';
@@ -71,7 +73,7 @@ class _InvestmentsDepositsScreenState
           if (_tabController.index == 0) {
             _showAddInvestmentDialog(context, ref);
           } else {
-            _showAddDepositDialog(context, ref);
+            DepositDialogHelper.showAdd(context, ref);
           }
         },
       ),
@@ -130,15 +132,27 @@ class _InvestmentsDepositsScreenState
                 TextField(
                   controller: costCtrl,
                   keyboardType: TextInputType.number,
-                  decoration:
-                      const InputDecoration(labelText: 'Modal Awal (Rp) *'),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    ThousandSeparatorInputFormatter(),
+                  ],
+                  decoration: const InputDecoration(
+                    labelText: 'Modal Awal (Rp) *',
+                    hintText: 'Masukkan nominal',
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: valueCtrl,
                   keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    ThousandSeparatorInputFormatter(),
+                  ],
                   decoration: const InputDecoration(
-                      labelText: 'Nilai Pasar Saat Ini (Rp) *'),
+                    labelText: 'Nilai Pasar Saat Ini (Rp) *',
+                    hintText: 'Masukkan nominal',
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -207,22 +221,24 @@ class _InvestmentsDepositsScreenState
       ),
     );
   }
+}
 
-  // ============================================================
-  // DIALOGS: ADD DEPOSIT
-  // ============================================================
-
-  void _showAddDepositDialog(BuildContext context, WidgetRef ref) {
+// ============================================================
+// DIALOGS: DEPOSIT HELPER (ADD, EDIT, DETAIL, DELETE, WITHDRAW)
+// ============================================================
+class DepositDialogHelper {
+  static void showAdd(BuildContext context, WidgetRef ref) {
     final nameCtrl = TextEditingController();
     final bankCtrl = TextEditingController();
     final principalCtrl = TextEditingController();
     final rateCtrl = TextEditingController(text: '6.25');
     final tenorCtrl = TextEditingController(text: '12');
     final taxCtrl = TextEditingController(text: '20');
-    final feeCtrl = TextEditingController(text: '0');
+    final feeCtrl = TextEditingController();
     final notesCtrl = TextEditingController();
     DepositInterestType interestType = DepositInterestType.simple;
     DateTime startDate = DateTime.now();
+    bool isSaving = false;
 
     showDialog(
       context: context,
@@ -241,6 +257,9 @@ class _InvestmentsDepositsScreenState
           final fee = int.tryParse(
                   feeCtrl.text.replaceAll('.', '').replaceAll(',', '')) ??
               0;
+
+          final previewMaturity =
+              DepositRules.calculateMaturityDate(startDate, tenor);
 
           final previewCalc = DepositRules.calculateDeposit(
             principal: principal,
@@ -272,8 +291,14 @@ class _InvestmentsDepositsScreenState
                   TextField(
                     controller: principalCtrl,
                     keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      ThousandSeparatorInputFormatter(),
+                    ],
                     decoration: const InputDecoration(
-                        labelText: 'Pokok Deposito (Rp) *'),
+                      labelText: 'Pokok Deposito (Rp) *',
+                      hintText: 'Masukkan nominal',
+                    ),
                     onChanged: (_) => setState(() {}),
                   ),
                   const SizedBox(height: 10),
@@ -285,7 +310,7 @@ class _InvestmentsDepositsScreenState
                           keyboardType: const TextInputType.numberWithOptions(
                               decimal: true),
                           decoration: const InputDecoration(
-                              labelText: 'Bunga % / tahun (misal 6.25)'),
+                              labelText: 'Bunga % / tahun'),
                           onChanged: (_) => setState(() {}),
                         ),
                       ),
@@ -294,8 +319,8 @@ class _InvestmentsDepositsScreenState
                         child: TextField(
                           controller: tenorCtrl,
                           keyboardType: TextInputType.number,
-                          decoration:
-                              const InputDecoration(labelText: 'Tenor (bulan)'),
+                          decoration: const InputDecoration(
+                              labelText: 'Tenor (bulan) *'),
                           onChanged: (_) => setState(() {}),
                         ),
                       ),
@@ -313,7 +338,7 @@ class _InvestmentsDepositsScreenState
                       ),
                       DropdownMenuItem(
                         value: DepositInterestType.compound,
-                        child: Text('Bunga Majemuk (Compound Bulanan)'),
+                        child: Text('Bunga Majemuk (Compound)'),
                       ),
                     ],
                     onChanged: (val) {
@@ -338,14 +363,74 @@ class _InvestmentsDepositsScreenState
                         child: TextField(
                           controller: feeCtrl,
                           keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            ThousandSeparatorInputFormatter(),
+                          ],
                           decoration: const InputDecoration(
-                              labelText: 'Biaya Lain (Rp)'),
+                            labelText: 'Biaya Lain (Rp)',
+                            hintText: '0',
+                          ),
                           onChanged: (_) => setState(() {}),
                         ),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 10),
+
+                  // Date Picker: Tanggal Mulai
+                  InkWell(
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: ctx,
+                        initialDate: startDate,
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime(2100),
+                        helpText: 'Pilih Tanggal Mulai Deposito',
+                      );
+                      if (picked != null) {
+                        setState(() => startDate = picked);
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Tanggal Mulai *',
+                        suffixIcon:
+                            Icon(Icons.calendar_today_rounded, size: 20),
+                      ),
+                      child: Text(
+                        formatDateIndo(startDate),
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Informasi Tanggal Jatuh Tempo
+                  InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'Estimasi Tanggal Jatuh Tempo',
+                      suffixIcon: Icon(Icons.event_available_rounded, size: 20),
+                    ),
+                    child: Text(
+                      formatDateIndo(previewMaturity),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  TextField(
+                    controller: notesCtrl,
+                    decoration:
+                        const InputDecoration(labelText: 'Catatan (opsional)'),
+                  ),
                   const SizedBox(height: 12),
+
                   // Estimasi Kalkulasi
                   Container(
                     padding: const EdgeInsets.all(12),
@@ -405,40 +490,684 @@ class _InvestmentsDepositsScreenState
                 child: const Text('Batal'),
               ),
               ElevatedButton(
-                onPressed: () async {
-                  final name = nameCtrl.text.trim();
-                  if (name.isEmpty || principal <= 0) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Nama dan pokok deposito harus valid')),
-                    );
-                    return;
-                  }
+                onPressed: isSaving
+                    ? null
+                    : () async {
+                        final name = nameCtrl.text.trim();
+                        if (name.isEmpty || principal <= 0 || tenor <= 0) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text(
+                                    'Nama, pokok, dan tenor deposito harus diisi dengan benar')),
+                          );
+                          return;
+                        }
 
-                  await ref.read(depositRepositoryProvider).create(
-                        name: name,
-                        bankName: bankCtrl.text.trim().isEmpty
-                            ? null
-                            : bankCtrl.text.trim(),
-                        principal: principal,
-                        annualRateBps: rateBps,
-                        tenorMonths: tenor,
-                        interestType: interestType,
-                        taxRateBps: taxBps,
-                        feeAmount: fee,
-                        startDate: startDate,
-                        notes: notesCtrl.text.trim().isEmpty
-                            ? null
-                            : notesCtrl.text.trim(),
-                      );
+                        final computedMaturity =
+                            DepositRules.calculateMaturityDate(
+                                startDate, tenor);
+                        if (computedMaturity.isBefore(startDate)) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text(
+                                    'Jatuh tempo tidak boleh lebih awal dari tanggal mulai')),
+                          );
+                          return;
+                        }
 
-                  if (context.mounted) Navigator.pop(ctx);
-                },
+                        setState(() => isSaving = true);
+                        try {
+                          await ref.read(depositRepositoryProvider).create(
+                                name: name,
+                                bankName: bankCtrl.text.trim().isEmpty
+                                    ? null
+                                    : bankCtrl.text.trim(),
+                                principal: principal,
+                                annualRateBps: rateBps,
+                                tenorMonths: tenor,
+                                interestType: interestType,
+                                taxRateBps: taxBps,
+                                feeAmount: fee,
+                                startDate: startDate,
+                                maturityDate: computedMaturity,
+                                notes: notesCtrl.text.trim().isEmpty
+                                    ? null
+                                    : notesCtrl.text.trim(),
+                              );
+
+                          if (context.mounted) {
+                            Navigator.pop(ctx);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('Deposito berhasil disimpan')),
+                            );
+                          }
+                        } finally {
+                          if (ctx.mounted) {
+                            setState(() => isSaving = false);
+                          }
+                        }
+                      },
                 child: const Text('Simpan'),
               ),
             ],
           );
         },
+      ),
+    );
+  }
+
+  static void showEdit(BuildContext context, WidgetRef ref, Deposit dep) {
+    final nameCtrl = TextEditingController(text: dep.name);
+    final bankCtrl = TextEditingController(text: dep.bankName ?? '');
+    final principalCtrl = TextEditingController(
+      text: ThousandSeparatorInputFormatter()
+          .formatEditUpdate(
+            const TextEditingValue(),
+            TextEditingValue(text: dep.principal.toString()),
+          )
+          .text,
+    );
+    final rateCtrl =
+        TextEditingController(text: (dep.annualRateBps / 100.0).toString());
+    final tenorCtrl = TextEditingController(text: dep.tenorMonths.toString());
+    final taxCtrl =
+        TextEditingController(text: (dep.taxRateBps / 100.0).toString());
+    final feeCtrl = TextEditingController(
+      text: dep.feeAmount > 0
+          ? ThousandSeparatorInputFormatter()
+              .formatEditUpdate(
+                const TextEditingValue(),
+                TextEditingValue(text: dep.feeAmount.toString()),
+              )
+              .text
+          : '',
+    );
+    final notesCtrl = TextEditingController(text: dep.notes ?? '');
+    DepositInterestType interestType = dep.interestType;
+    DateTime startDate = dep.startDate;
+    bool isSaving = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) {
+          final principal = int.tryParse(
+                  principalCtrl.text.replaceAll('.', '').replaceAll(',', '')) ??
+              dep.principal;
+          final ratePercent =
+              double.tryParse(rateCtrl.text.replaceAll(',', '.')) ??
+                  (dep.annualRateBps / 100.0);
+          final rateBps = (ratePercent * 100).round();
+          final tenor = int.tryParse(tenorCtrl.text) ?? dep.tenorMonths;
+          final taxPercent =
+              double.tryParse(taxCtrl.text.replaceAll(',', '.')) ?? 20.0;
+          final taxBps = (taxPercent * 100).round();
+          final fee = int.tryParse(
+                  feeCtrl.text.replaceAll('.', '').replaceAll(',', '')) ??
+              0;
+
+          final previewMaturity =
+              DepositRules.calculateMaturityDate(startDate, tenor);
+
+          final previewCalc = DepositRules.calculateDeposit(
+            principal: principal,
+            rateBps: rateBps,
+            tenorMonths: tenor,
+            isCompound: interestType == DepositInterestType.compound,
+            taxRateBps: taxBps,
+            feeAmount: fee,
+          );
+
+          return AlertDialog(
+            title: Text('Ubah Deposito: ${dep.name}'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameCtrl,
+                    decoration: const InputDecoration(
+                        labelText: 'Nama Produk / Deposito *'),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: bankCtrl,
+                    decoration: const InputDecoration(
+                        labelText: 'Nama Bank (misal BCA, Mandiri)'),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: principalCtrl,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      ThousandSeparatorInputFormatter(),
+                    ],
+                    decoration: const InputDecoration(
+                      labelText: 'Pokok Deposito (Rp) *',
+                      hintText: 'Masukkan nominal',
+                    ),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: rateCtrl,
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
+                          decoration: const InputDecoration(
+                              labelText: 'Bunga % / tahun'),
+                          onChanged: (_) => setState(() {}),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextField(
+                          controller: tenorCtrl,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                              labelText: 'Tenor (bulan) *'),
+                          onChanged: (_) => setState(() {}),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<DepositInterestType>(
+                    value: interestType,
+                    decoration:
+                        const InputDecoration(labelText: 'Metode Bunga'),
+                    items: const [
+                      DropdownMenuItem(
+                        value: DepositInterestType.simple,
+                        child: Text('Bunga Sederhana (Simple)'),
+                      ),
+                      DropdownMenuItem(
+                        value: DepositInterestType.compound,
+                        child: Text('Bunga Majemuk (Compound)'),
+                      ),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) setState(() => interestType = val);
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: taxCtrl,
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
+                          decoration: const InputDecoration(
+                              labelText: 'Pajak Bunga % (default 20)'),
+                          onChanged: (_) => setState(() {}),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextField(
+                          controller: feeCtrl,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            ThousandSeparatorInputFormatter(),
+                          ],
+                          decoration: const InputDecoration(
+                            labelText: 'Biaya Lain (Rp)',
+                            hintText: '0',
+                          ),
+                          onChanged: (_) => setState(() {}),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Date Picker: Tanggal Mulai
+                  InkWell(
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: ctx,
+                        initialDate: startDate,
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime(2100),
+                        helpText: 'Ubah Tanggal Mulai Deposito',
+                      );
+                      if (picked != null) {
+                        setState(() => startDate = picked);
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Tanggal Mulai *',
+                        suffixIcon:
+                            Icon(Icons.calendar_today_rounded, size: 20),
+                      ),
+                      child: Text(
+                        formatDateIndo(startDate),
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Estimasi Jatuh Tempo
+                  InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'Estimasi Tanggal Jatuh Tempo',
+                      suffixIcon: Icon(Icons.event_available_rounded, size: 20),
+                    ),
+                    child: Text(
+                      formatDateIndo(previewMaturity),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  TextField(
+                    controller: notesCtrl,
+                    decoration:
+                        const InputDecoration(labelText: 'Catatan (opsional)'),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Estimasi Hasil
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Estimasi Saat Jatuh Tempo Baru:',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                              color: Colors.white70),
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Bunga Bersih:',
+                                style: TextStyle(fontSize: 12)),
+                            Text(
+                              formatRupiah(previewCalc.netInterest),
+                              style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.income,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Total Diterima:',
+                                style: TextStyle(fontSize: 12)),
+                            Text(
+                              formatRupiah(previewCalc.maturityAmount),
+                              style: const TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Batal'),
+              ),
+              ElevatedButton(
+                onPressed: isSaving
+                    ? null
+                    : () async {
+                        final name = nameCtrl.text.trim();
+                        if (name.isEmpty || principal <= 0 || tenor <= 0) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text(
+                                    'Nama, pokok, dan tenor deposito harus diisi dengan benar')),
+                          );
+                          return;
+                        }
+
+                        final computedMaturity =
+                            DepositRules.calculateMaturityDate(
+                                startDate, tenor);
+                        if (computedMaturity.isBefore(startDate)) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text(
+                                    'Jatuh tempo tidak boleh lebih awal dari tanggal mulai')),
+                          );
+                          return;
+                        }
+
+                        setState(() => isSaving = true);
+                        try {
+                          await ref.read(depositRepositoryProvider).update(
+                                dep.id,
+                                name: name,
+                                bankName: bankCtrl.text.trim().isEmpty
+                                    ? null
+                                    : bankCtrl.text.trim(),
+                                principal: principal,
+                                annualRateBps: rateBps,
+                                tenorMonths: tenor,
+                                interestType: interestType,
+                                taxRateBps: taxBps,
+                                feeAmount: fee,
+                                startDate: startDate,
+                                maturityDate: computedMaturity,
+                                notes: notesCtrl.text.trim().isEmpty
+                                    ? null
+                                    : notesCtrl.text.trim(),
+                              );
+
+                          if (context.mounted) {
+                            Navigator.pop(ctx);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('Perubahan deposito disimpan')),
+                            );
+                          }
+                        } finally {
+                          if (ctx.mounted) {
+                            setState(() => isSaving = false);
+                          }
+                        }
+                      },
+                child: const Text('Simpan'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  static void showDetail(
+    BuildContext context,
+    WidgetRef ref,
+    Deposit dep,
+  ) {
+    final calc = DepositRules.calculateDeposit(
+      principal: dep.principal,
+      rateBps: dep.annualRateBps,
+      tenorMonths: dep.tenorMonths,
+      isCompound: dep.interestType == DepositInterestType.compound,
+      compoundFrequency: dep.compoundFrequency,
+      taxRateBps: dep.taxRateBps,
+      feeAmount: dep.feeAmount,
+    );
+    final ratePercent = dep.annualRateBps / 100.0;
+    final isMatured = dep.status == DepositStatus.matured;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            const Icon(Icons.account_balance_rounded,
+                color: AppColors.primary, size: 24),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                dep.name,
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (dep.bankName != null && dep.bankName!.isNotEmpty) ...[
+                Text(
+                  'Bank: ${dep.bankName}',
+                  style: const TextStyle(
+                      fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+              ],
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isMatured
+                      ? AppColors.income.withOpacity(0.2)
+                      : AppColors.primary.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  isMatured ? 'Status: Sudah Jatuh Tempo' : 'Status: Aktif',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: isMatured ? AppColors.income : AppColors.primary,
+                  ),
+                ),
+              ),
+              const Divider(height: 20),
+              _detailRow('Pokok Deposito', formatRupiah(dep.principal)),
+              _detailRow('Tanggal Mulai', formatDateIndo(dep.startDate)),
+              _detailRow(
+                  'Tanggal Jatuh Tempo', formatDateIndo(dep.maturityDate)),
+              _detailRow('Tenor', '${dep.tenorMonths} Bulan'),
+              _detailRow('Suku Bunga',
+                  '${ratePercent.toStringAsFixed(2)}% / tahun (${dep.interestType == DepositInterestType.compound ? "Majemuk" : "Sederhana"})'),
+              _detailRow('Pajak Bunga',
+                  '${(dep.taxRateBps / 100).toStringAsFixed(1)}% (${formatRupiah(calc.taxAmount)})'),
+              if (dep.feeAmount > 0)
+                _detailRow('Biaya Lain', formatRupiah(dep.feeAmount)),
+              const Divider(height: 16),
+              _detailRow('Bunga Bersih', '+${formatRupiah(calc.netInterest)}',
+                  valueColor: AppColors.income),
+              _detailRow(
+                  'Total Saat Jatuh Tempo', formatRupiah(calc.maturityAmount),
+                  valueColor: AppColors.primary, isBold: true),
+              if (dep.notes != null && dep.notes!.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                const Text('Catatan:',
+                    style:
+                        TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                Text(dep.notes!,
+                    style:
+                        const TextStyle(fontSize: 12, color: Colors.white70)),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              confirmDelete(context, ref, dep);
+            },
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('Hapus'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              showEdit(context, ref, dep);
+            },
+            child: const Text('Ubah'),
+          ),
+          if (dep.status != DepositStatus.withdrawn)
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                showWithdraw(context, ref, dep, calc);
+              },
+              child: const Text('Cairkan'),
+            ),
+        ],
+      ),
+    );
+  }
+
+  static Future<void> confirmDelete(
+    BuildContext context,
+    WidgetRef ref,
+    Deposit dep,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Hapus Deposito'),
+        content: Text(
+          'Apakah Anda yakin ingin menghapus simpanan deposito "${dep.name}"?\n'
+          'Tindakan ini akan menghapus catatan deposito dari portofolio Anda.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      try {
+        await ref.read(depositRepositoryProvider).delete(dep.id);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Deposito "${dep.name}" berhasil dihapus')),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Gagal menghapus deposito: $e'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  static void showWithdraw(
+    BuildContext context,
+    WidgetRef ref,
+    Deposit dep,
+    DepositCalculationResult calc,
+  ) {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return FutureBuilder<List<Account>>(
+          future: ref.read(accountRepositoryProvider).getActiveAccounts(),
+          builder: (ctx, snapshot) {
+            final accounts = snapshot.data ?? [];
+            int? selectedAccId = accounts.isNotEmpty ? accounts.first.id : null;
+
+            return StatefulBuilder(
+              builder: (ctx, setState) => AlertDialog(
+                title: Text('Cairkan: ${dep.name}'),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Total dana cair (Pokok + Bunga Bersih): ${formatRupiah(calc.maturityAmount)}',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text('Pilih rekening tujuan pencairan:',
+                        style: TextStyle(fontSize: 12, color: Colors.white70)),
+                    const SizedBox(height: 8),
+                    if (accounts.isNotEmpty)
+                      DropdownButtonFormField<int>(
+                        value: selectedAccId,
+                        items: accounts
+                            .map((a) => DropdownMenuItem(
+                                  value: a.id,
+                                  child: Text(
+                                      '${a.name} (${formatRupiah(a.balance)})'),
+                                ))
+                            .toList(),
+                        onChanged: (val) {
+                          if (val != null) setState(() => selectedAccId = val);
+                        },
+                      )
+                    else
+                      const Text('Belum ada dompet aktif.'),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Batal')),
+                  ElevatedButton(
+                    onPressed: () async {
+                      await ref.read(depositRepositoryProvider).withdraw(
+                            dep.id,
+                            returnToAccountId: selectedAccId,
+                          );
+                      if (context.mounted) Navigator.pop(ctx);
+                    },
+                    child: const Text('Cairkan'),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  static Widget _detailRow(String label, String value,
+      {Color? valueColor, bool isBold = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label,
+              style: const TextStyle(fontSize: 12, color: Colors.white70)),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
+              color: valueColor ?? Colors.white,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -691,8 +1420,14 @@ class _InvestmentsTab extends ConsumerWidget {
             TextField(
               controller: valCtrl,
               keyboardType: TextInputType.number,
-              decoration:
-                  const InputDecoration(labelText: 'Nilai Pasar Baru (Rp)'),
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                ThousandSeparatorInputFormatter(),
+              ],
+              decoration: const InputDecoration(
+                labelText: 'Nilai Pasar Baru (Rp)',
+                hintText: 'Masukkan nominal',
+              ),
             ),
             const SizedBox(height: 10),
             TextField(
@@ -850,95 +1585,183 @@ class _DepositsTab extends ConsumerWidget {
                   final ratePercent = dep.annualRateBps / 100.0;
                   final isMatured = dep.status == DepositStatus.matured;
 
-                  return Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: isMatured
-                            ? AppColors.income.withOpacity(0.5)
-                            : AppColors.border,
+                  return InkWell(
+                    borderRadius: BorderRadius.circular(14),
+                    onTap: () =>
+                        DepositDialogHelper.showDetail(context, ref, dep),
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: isMatured
+                              ? AppColors.income.withOpacity(0.5)
+                              : AppColors.border,
+                        ),
                       ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  dep.name,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      dep.name,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16),
+                                    ),
+                                    Text(
+                                      '${dep.bankName ?? "Bank"} • Bunga ${ratePercent.toStringAsFixed(2)}% (${dep.interestType.name})',
+                                      style: const TextStyle(
+                                          fontSize: 12, color: Colors.white54),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              PopupMenuButton<String>(
+                                onSelected: (val) {
+                                  if (val == 'detail') {
+                                    DepositDialogHelper.showDetail(
+                                        context, ref, dep);
+                                  } else if (val == 'edit') {
+                                    DepositDialogHelper.showEdit(
+                                        context, ref, dep);
+                                  } else if (val == 'withdraw') {
+                                    DepositDialogHelper.showWithdraw(
+                                        context, ref, dep, calc);
+                                  } else if (val == 'rollover') {
+                                    ref
+                                        .read(depositRepositoryProvider)
+                                        .rollover(dep.id);
+                                  } else if (val == 'delete') {
+                                    DepositDialogHelper.confirmDelete(
+                                        context, ref, dep);
+                                  }
+                                },
+                                itemBuilder: (_) => [
+                                  const PopupMenuItem(
+                                    value: 'detail',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.info_outline_rounded,
+                                            size: 18),
+                                        SizedBox(width: 8),
+                                        Text('Lihat Rincian Detail'),
+                                      ],
+                                    ),
+                                  ),
+                                  const PopupMenuItem(
+                                    value: 'edit',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.edit_outlined, size: 18),
+                                        SizedBox(width: 8),
+                                        Text('Ubah Deposito'),
+                                      ],
+                                    ),
+                                  ),
+                                  const PopupMenuItem(
+                                    value: 'withdraw',
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                            Icons
+                                                .account_balance_wallet_outlined,
+                                            size: 18),
+                                        SizedBox(width: 8),
+                                        Text('Cairkan Deposito'),
+                                      ],
+                                    ),
+                                  ),
+                                  const PopupMenuItem(
+                                    value: 'rollover',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.autorenew_rounded, size: 18),
+                                        SizedBox(width: 8),
+                                        Text('Perpanjang (Rollover)'),
+                                      ],
+                                    ),
+                                  ),
+                                  const PopupMenuDivider(),
+                                  const PopupMenuItem(
+                                    value: 'delete',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.delete_outline_rounded,
+                                            size: 18, color: AppColors.expense),
+                                        SizedBox(width: 8),
+                                        Text('Hapus Deposito',
+                                            style: TextStyle(
+                                                color: AppColors.expense)),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('Mulai: ${formatDateIndo(dep.startDate)}',
                                   style: const TextStyle(
+                                      fontSize: 12, color: Colors.white70)),
+                              Text(
+                                  'Jatuh Tempo: ${formatDateIndo(dep.maturityDate)}',
+                                  style: TextStyle(
+                                      fontSize: 12,
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 16),
-                                ),
-                                Text(
-                                  '${dep.bankName ?? "Bank"} • Bunga ${ratePercent.toStringAsFixed(2)}% (${dep.interestType.name})',
+                                      color: isMatured
+                                          ? AppColors.income
+                                          : Colors.white)),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('Pokok: ${formatRupiah(dep.principal)}',
                                   style: const TextStyle(
-                                      fontSize: 12, color: Colors.white54),
-                                ),
-                              ],
-                            ),
-                            PopupMenuButton<String>(
-                              onSelected: (val) {
-                                if (val == 'withdraw') {
-                                  _showWithdrawDialog(context, ref, dep, calc);
-                                } else if (val == 'rollover') {
-                                  ref
-                                      .read(depositRepositoryProvider)
-                                      .rollover(dep.id);
-                                }
-                              },
-                              itemBuilder: (_) => [
-                                const PopupMenuItem(
-                                  value: 'withdraw',
-                                  child: Text('Cairkan Deposito (Withdraw)'),
-                                ),
-                                const PopupMenuItem(
-                                  value: 'rollover',
-                                  child: Text('Perpanjang (Rollover)'),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Pokok: ${formatRupiah(dep.principal)}',
-                                style: const TextStyle(
-                                    fontSize: 12, color: Colors.white70)),
-                            Text(
-                                'Jatuh Tempo: ${dep.maturityDate.year}-${dep.maturityDate.month.toString().padLeft(2, '0')}-${dep.maturityDate.day.toString().padLeft(2, '0')}',
+                                      fontSize: 12, color: Colors.white70)),
+                              Text(
+                                  'Hasil: ${formatRupiah(calc.maturityAmount)}',
+                                  style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.primary)),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                  'Bunga Bersih: +${formatRupiah(calc.netInterest)}',
+                                  style: const TextStyle(
+                                      fontSize: 12, color: AppColors.income)),
+                              Text(
+                                isMatured
+                                    ? 'Sudah Jatuh Tempo'
+                                    : '${dep.tenorMonths} Bulan',
                                 style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: isMatured
-                                        ? AppColors.income
-                                        : Colors.white)),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                                'Bunga Bersih: +${formatRupiah(calc.netInterest)}',
-                                style: const TextStyle(
-                                    fontSize: 12, color: AppColors.income)),
-                            Text('Hasil: ${formatRupiah(calc.maturityAmount)}',
-                                style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.primary)),
-                          ],
-                        ),
-                      ],
+                                  fontSize: 11,
+                                  color: isMatured
+                                      ? AppColors.income
+                                      : Colors.white54,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 },
@@ -947,77 +1770,6 @@ class _DepositsTab extends ConsumerWidget {
           ),
         ],
       ),
-    );
-  }
-
-  void _showWithdrawDialog(
-    BuildContext context,
-    WidgetRef ref,
-    Deposit dep,
-    DepositCalculationResult calc,
-  ) {
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        return FutureBuilder<List<Account>>(
-          future: ref.read(accountRepositoryProvider).getActiveAccounts(),
-          builder: (ctx, snapshot) {
-            final accounts = snapshot.data ?? [];
-            int? selectedAccId = accounts.isNotEmpty ? accounts.first.id : null;
-
-            return StatefulBuilder(
-              builder: (ctx, setState) => AlertDialog(
-                title: Text('Cairkan: ${dep.name}'),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Total dana cair (Pokok + Bunga Bersih): ${formatRupiah(calc.maturityAmount)}',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 12),
-                    const Text('Pilih rekening tujuan pencairan:',
-                        style: TextStyle(fontSize: 12, color: Colors.white70)),
-                    const SizedBox(height: 8),
-                    if (accounts.isNotEmpty)
-                      DropdownButtonFormField<int>(
-                        value: selectedAccId,
-                        items: accounts
-                            .map((a) => DropdownMenuItem(
-                                  value: a.id,
-                                  child: Text(
-                                      '${a.name} (${formatRupiah(a.balance)})'),
-                                ))
-                            .toList(),
-                        onChanged: (val) {
-                          if (val != null) setState(() => selectedAccId = val);
-                        },
-                      )
-                    else
-                      const Text('Belum ada dompet aktif.'),
-                  ],
-                ),
-                actions: [
-                  TextButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      child: const Text('Batal')),
-                  ElevatedButton(
-                    onPressed: () async {
-                      await ref.read(depositRepositoryProvider).withdraw(
-                            dep.id,
-                            returnToAccountId: selectedAccId,
-                          );
-                      if (context.mounted) Navigator.pop(ctx);
-                    },
-                    child: const Text('Cairkan'),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
     );
   }
 }

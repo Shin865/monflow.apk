@@ -29,6 +29,12 @@ class TransactionRepository {
 
   TransactionRepository(this._db, this._accountRepo);
 
+  /// Ambil transaksi berdasarkan ID.
+  Future<Transaction?> getById(int id) async {
+    return (_db.select(_db.transactions)..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+  }
+
   /// Ambil transaksi dengan filter, termasuk nama akun dan kategori.
   Future<List<EnrichedTransaction>> getTransactions({
     TransactionType? type,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:money_flow/core/formatting/thousand_separator_formatter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:money_flow/core/database/database.dart';
@@ -18,7 +19,7 @@ class CreateAccountScreen extends ConsumerStatefulWidget {
 class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _balanceController = TextEditingController(text: '0');
+  final _balanceController = TextEditingController();
   final _descController = TextEditingController();
 
   AccountType _selectedType = AccountType.cash;
@@ -207,14 +208,24 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
             TextFormField(
               controller: _balanceController,
               decoration: const InputDecoration(
-                hintText: '0',
+                hintText: 'Masukkan nominal',
                 prefixIcon: Icon(Icons.attach_money_rounded),
                 prefixText: 'Rp ',
               ),
               keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                ThousandSeparatorInputFormatter(),
+              ],
               validator: (v) {
-                if (v == null || v.isEmpty) return 'Saldo awal wajib diisi';
+                if (v == null || v.trim().isEmpty) {
+                  return 'Saldo awal wajib diisi';
+                }
+                final parsed =
+                    int.tryParse(v.replaceAll('.', '').replaceAll(',', ''));
+                if (parsed == null || parsed < 0) {
+                  return 'Nominal saldo tidak valid';
+                }
                 return null;
               },
             ),

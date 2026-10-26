@@ -46,6 +46,30 @@ String formatDateFull(DateTime date) {
   }
 }
 
+const _bulanIndo = [
+  '',
+  'Januari',
+  'Februari',
+  'Maret',
+  'April',
+  'Mei',
+  'Juni',
+  'Juli',
+  'Agustus',
+  'September',
+  'Oktober',
+  'November',
+  'Desember',
+];
+
+/// Format tanggal Indonesia standar: "26 Oktober 2026"
+String formatDateIndo(DateTime date) {
+  final monthName = (date.month >= 1 && date.month <= 12)
+      ? _bulanIndo[date.month]
+      : date.month.toString();
+  return '${date.day} $monthName ${date.year}';
+}
+
 /// Format tanggal ISO untuk penyimpanan.
 String formatDateIso(DateTime date) {
   return DateFormat('yyyy-MM-dd').format(date);

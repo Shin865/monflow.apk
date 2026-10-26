@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:money_flow/core/formatting/thousand_separator_formatter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -72,8 +74,15 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                 TextFormField(
                   controller: amountController,
                   keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    ThousandSeparatorInputFormatter(),
+                  ],
                   decoration: const InputDecoration(
-                      labelText: 'Nominal Tagihan (Rp) *', prefixText: 'Rp '),
+                    labelText: 'Nominal Tagihan (Rp) *',
+                    hintText: 'Masukkan nominal',
+                    prefixText: 'Rp ',
+                  ),
                 ),
                 const SizedBox(height: 12),
                 ListTile(
@@ -294,9 +303,15 @@ class _BillsScreenState extends ConsumerState<BillsScreen> {
                 TextFormField(
                   controller: amountController,
                   keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    ThousandSeparatorInputFormatter(),
+                  ],
                   decoration: const InputDecoration(
-                      labelText: 'Nominal Pembayaran (Rp) *',
-                      prefixText: 'Rp '),
+                    labelText: 'Nominal Pembayaran (Rp) *',
+                    hintText: 'Masukkan nominal',
+                    prefixText: 'Rp ',
+                  ),
                 ),
                 const SizedBox(height: 12),
                 ListTile(

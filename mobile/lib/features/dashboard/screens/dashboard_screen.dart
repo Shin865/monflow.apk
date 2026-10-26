@@ -12,6 +12,7 @@ import 'package:money_flow/data/repositories/purchase_plan_repository.dart';
 import 'package:money_flow/data/repositories/transaction_repository.dart';
 import 'package:money_flow/domain/rules/investment_rules.dart';
 import 'package:money_flow/domain/rules/net_worth_rules.dart';
+import 'package:money_flow/core/providers/balance_visibility_provider.dart';
 
 /// State provider untuk bulan dan tahun yang dipilih pada dashboard.
 final selectedPeriodProvider = StateProvider<DateTime>((ref) {
@@ -131,6 +132,8 @@ class _NetWorthAndBalanceCard extends ConsumerWidget {
     final depStream = ref.watch(depositRepositoryProvider).watchSummary();
     final debtStream = ref.watch(debtRepositoryProvider).watchDebts();
 
+    final isBalanceHidden = ref.watch(balanceVisibilityProvider);
+
     return StreamBuilder<int>(
       stream: balanceStream,
       builder: (context, balSnap) {
@@ -227,24 +230,47 @@ class _NetWorthAndBalanceCard extends ConsumerWidget {
                                   ),
                                 ],
                               ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.15),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Text(
-                                  'Lokal SQLite',
-                                  style: TextStyle(
-                                      color: Colors.white70, fontSize: 11),
-                                ),
+                              Row(
+                                children: [
+                                  IconButton(
+                                    icon: Icon(
+                                      isBalanceHidden
+                                          ? Icons.visibility_off_rounded
+                                          : Icons.visibility_rounded,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                    tooltip: isBalanceHidden
+                                        ? 'Tampilkan Saldo'
+                                        : 'Sembunyikan Saldo',
+                                    onPressed: () => ref
+                                        .read(
+                                            balanceVisibilityProvider.notifier)
+                                        .toggle(),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.15),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Text(
+                                      'Lokal SQLite',
+                                      style: TextStyle(
+                                          color: Colors.white70, fontSize: 11),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            formatRupiah(totalActiveBalance),
+                            BalanceVisibilityNotifier.formatOrMask(
+                              totalActiveBalance,
+                              isHidden: isBalanceHidden,
+                            ),
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 28,
@@ -273,7 +299,10 @@ class _NetWorthAndBalanceCard extends ConsumerWidget {
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
-                                      formatRupiah(totalAssets),
+                                      BalanceVisibilityNotifier.formatOrMask(
+                                        totalAssets,
+                                        isHidden: isBalanceHidden,
+                                      ),
                                       style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 15,
@@ -297,7 +326,10 @@ class _NetWorthAndBalanceCard extends ConsumerWidget {
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
-                                      formatRupiah(netWorth),
+                                      BalanceVisibilityNotifier.formatOrMask(
+                                        netWorth,
+                                        isHidden: isBalanceHidden,
+                                      ),
                                       style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 15,
@@ -948,7 +980,7 @@ class _AccountsList extends ConsumerWidget {
   }
 }
 
-class _AccountTile extends StatelessWidget {
+class _AccountTile extends ConsumerWidget {
   final Account account;
 
   const _AccountTile({required this.account});
@@ -984,10 +1016,11 @@ class _AccountTile extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final color = account.color != null
         ? Color(int.parse(account.color!.replaceFirst('#', '0xFF')))
         : AppColors.primary;
+    final isBalanceHidden = ref.watch(balanceVisibilityProvider);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -1032,7 +1065,10 @@ class _AccountTile extends StatelessWidget {
             ),
           ),
           Text(
-            formatRupiah(account.balance),
+            BalanceVisibilityNotifier.formatOrMask(
+              account.balance,
+              isHidden: isBalanceHidden,
+            ),
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,

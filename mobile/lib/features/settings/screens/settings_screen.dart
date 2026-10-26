@@ -1184,33 +1184,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             icon: Icons.info_outline_rounded,
             iconColor: AppColors.primary,
             title: 'Tentang Aplikasi',
-            subtitle: 'Sistem manajemen keuangan offline-first',
-            onTap: () {
-              showAboutDialog(
-                context: context,
-                applicationName: 'Money Flow',
-                applicationVersion: '1.0.0+1',
-                applicationIcon: const Icon(Icons.show_chart_rounded,
-                    color: AppColors.primary, size: 48),
-                children: const [
-                  Text(
-                    'Aplikasi manajemen keuangan pribadi yang bekerja 100% offline.\n\n'
-                    'Semua kalkulasi dilakukan lokal dengan presisi integer Rupiah, '
-                    'dilengkapi sistem backup & restore snapshot yang aman, '
-                    'serta proteksi enkripsi AES-256-GCM.',
-                  ),
-                ],
-              );
-            },
+            subtitle: 'Versi, developer, GitHub, dan lisensi',
+            trailing: const Icon(Icons.chevron_right_rounded,
+                color: AppColors.textMuted),
+            onTap: () => context.pushNamed('about'),
           ),
           const SizedBox(height: 8),
 
-          const _SettingsTile(
-            icon: Icons.offline_bolt_rounded,
-            iconColor: AppColors.income,
-            title: 'Mode Offline',
-            subtitle: '100% mandiri tanpa koneksi server eksternal',
-            onTap: null,
+          _SettingsTile(
+            icon: Icons.system_update_rounded,
+            iconColor: AppColors.transfer,
+            title: 'Cek Pembaruan APK',
+            subtitle: 'Lihat rilis terbaru di GitHub Releases',
+            trailing: const Icon(Icons.chevron_right_rounded,
+                color: AppColors.textMuted),
+            onTap: () => context.pushNamed('about'),
           ),
         ],
       ),
