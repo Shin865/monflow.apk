@@ -15,10 +15,10 @@ on:
         type: boolean
         default: true
       release_tag:
-        description: 'Release Tag (e.g. v1.0.0)'
+        description: 'Release Tag (e.g. v2.0.0)'
         required: false
         type: string
-        default: 'v1.0.0'
+        default: 'v2.0.0'
 
 permissions:
   contents: write
@@ -86,29 +86,31 @@ jobs:
           cp android/app/monflow.jks android/monflow.jks
 
           echo "Generating android/key.properties..."
-          cat <<EOF > android/key.properties
-storeFile=monflow.jks
-storePassword=${KEYSTORE_PASSWORD}
-keyAlias=${KEY_ALIAS}
-keyPassword=${KEY_PASSWORD}
-EOF
+          printf "storeFile=monflow.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n" \
+            "$KEYSTORE_PASSWORD" \
+            "$KEY_ALIAS" \
+            "$KEY_PASSWORD" > android/key.properties
 
           chmod 600 android/app/monflow.jks android/monflow.jks android/key.properties
           echo "Release signing configured successfully."
 
       - name: Build Universal Release APK
         run: |
+          BUILD_NUMBER=$(( 100 + ${{ github.run_number }} ))
+          echo "Building Universal APK with versionCode=$BUILD_NUMBER..."
           flutter build apk --release \
-            --build-number=${{ github.run_number }} \
-            --build-name=1.0.${{ github.run_number }}
+            --build-number=$BUILD_NUMBER \
+            --build-name=2.0.${{ github.run_number }}
           mkdir -p ../dist
           cp build/app/outputs/flutter-apk/app-release.apk ../dist/MoneyFlow-universal-release.apk
 
       - name: Build Split-per-ABI APKs
         run: |
+          BUILD_NUMBER=$(( 100 + ${{ github.run_number }} ))
+          echo "Building Split APKs with versionCode=$BUILD_NUMBER..."
           flutter build apk --release --split-per-abi \
-            --build-number=${{ github.run_number }} \
-            --build-name=1.0.${{ github.run_number }}
+            --build-number=$BUILD_NUMBER \
+            --build-name=2.0.${{ github.run_number }}
           mkdir -p ../dist
           cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk ../dist/MoneyFlow-arm64-v8a-release.apk
           cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk ../dist/MoneyFlow-armeabi-v7a-release.apk
@@ -160,8 +162,8 @@ EOF
         if: github.event_name != 'pull_request'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ inputs.release_tag || (startsWith(github.ref, 'refs/tags/v') && github.ref_name) || format('v1.0.{0}', github.run_number) }}
-          name: Money Flow Release ${{ inputs.release_tag || (startsWith(github.ref, 'refs/tags/v') && github.ref_name) || format('v1.0.{0}', github.run_number) }}
+          tag_name: ${{ inputs.release_tag || (startsWith(github.ref, 'refs/tags/v') && github.ref_name) || format('v2.0.{0}', github.run_number) }}
+          name: Money Flow Release ${{ inputs.release_tag || (startsWith(github.ref, 'refs/tags/v') && github.ref_name) || format('v2.0.{0}', github.run_number) }}
           files: dist/*.apk
           draft: false
           prerelease: false
