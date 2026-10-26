@@ -20,10 +20,11 @@ def resolveStoreFile(String storeFilePath) {
     if (f.exists()) return f
     f = rootProject.file(storeFilePath)
     if (f.exists()) return f
-    // Also check relative to mobile/android/app if defined from root
+    f = rootProject.file("app/" + storeFilePath)
+    if (f.exists()) return f
     f = file("app/" + storeFilePath)
     if (f.exists()) return f
-    return file(storeFilePath)
+    return f
 }
 
 android {
