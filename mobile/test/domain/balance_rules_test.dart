@@ -261,9 +261,8 @@ void main() {
     });
   });
 
-  group('BalanceRules — Dataset Kesetaraan Desktop-Android', () {
-    /// Dataset sintetis untuk membandingkan hasil Python vs Dart.
-    /// Expected values dihitung dari aturan backend Python yang sudah diaudit.
+  group('BalanceRules — Verifikasi Aliran Saldo Transaksi', () {
+    /// Dataset validasi alur transaksi finansial mobile.
 
     test('Dataset 1: Gaji → Makan → Transportasi → Refund', () {
       int saldo = 0;

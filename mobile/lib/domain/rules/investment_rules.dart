@@ -1,7 +1,6 @@
 import 'package:money_flow/domain/rules/deposit_rules.dart';
 
-/// Aturan perhitungan portofolio dan transaksi investasi — Milestone 5.
-/// Sesuai model desktop backend/app/models/investment.py dan routes/investments.py
+/// Aturan perhitungan portofolio dan transaksi investasi mobile Money Flow.
 class InvestmentRules {
   const InvestmentRules._();
 

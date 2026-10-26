@@ -12,7 +12,7 @@ part 'database.g.dart';
 // ENUMS
 // ============================================================
 
-/// Tipe akun — sesuai desktop: cash, bank, ewallet, savings, other
+/// Tipe akun: cash, bank, ewallet, savings, other
 enum AccountType {
   cash,
   bank,
@@ -21,13 +21,13 @@ enum AccountType {
   other,
 }
 
-/// Tipe kategori — sesuai desktop: income, expense
+/// Tipe kategori: income, expense
 enum CategoryType {
   income,
   expense,
 }
 
-/// Tipe transaksi — sesuai desktop: income, expense, refund, adjustment
+/// Tipe transaksi: income, expense, refund, adjustment
 enum TransactionType {
   income,
   expense,
@@ -35,7 +35,7 @@ enum TransactionType {
   adjustment,
 }
 
-/// Status tagihan — sesuai desktop: upcoming, dueSoon, overdue, paid
+/// Status tagihan: upcoming, dueSoon, overdue, paid
 enum BillStatus {
   upcoming,
   dueSoon,
@@ -43,7 +43,7 @@ enum BillStatus {
   paid,
 }
 
-/// Frekuensi tagihan — sesuai desktop: once, monthly, quarterly, yearly
+/// Frekuensi tagihan: once, monthly, quarterly, yearly
 enum BillFrequency {
   once,
   monthly,
@@ -51,20 +51,20 @@ enum BillFrequency {
   yearly,
 }
 
-/// Tipe hutang / piutang — sesuai desktop: hutang (payable), piutang (receivable)
+/// Tipe hutang / piutang: hutang (payable), piutang (receivable)
 enum DebtType {
   hutang,
   piutang,
 }
 
-/// Status hutang / piutang — sesuai desktop: active, paid, overdue
+/// Status hutang / piutang: active, paid, overdue
 enum DebtStatus {
   active,
   paid,
   overdue,
 }
 
-/// Tipe instrumen investasi — sesuai desktop
+/// Tipe instrumen investasi
 enum InvestmentType {
   saham,
   reksadana,
@@ -75,7 +75,7 @@ enum InvestmentType {
   other,
 }
 
-/// Tipe transaksi investasi — sesuai desktop
+/// Tipe transaksi investasi
 enum InvestmentTxnType {
   buy,
   sell,
@@ -83,13 +83,13 @@ enum InvestmentTxnType {
   valuation,
 }
 
-/// Tipe perhitungan bunga deposito — sesuai desktop
+/// Tipe perhitungan bunga deposito
 enum DepositInterestType {
   simple,
   compound,
 }
 
-/// Status deposito — sesuai desktop & siklus produk
+/// Status deposito & siklus produk
 enum DepositStatus {
   active,
   matured,
@@ -104,7 +104,7 @@ enum SavingsGoalStatus {
   cancelled,
 }
 
-/// Prioritas rencana pembelian — sesuai desktop
+/// Prioritas rencana pembelian
 enum PlanPriority {
   low,
   medium,
@@ -112,7 +112,7 @@ enum PlanPriority {
   urgent,
 }
 
-/// Status rencana pembelian — sesuai desktop
+/// Status rencana pembelian
 enum PlanStatus {
   active,
   achieved,
@@ -169,7 +169,7 @@ class Transactions extends Table {
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 }
 
-/// Tabel transfer antar akun. Satu baris = satu transfer (sesuai desktop).
+/// Tabel transfer antar akun. Satu baris = satu transfer.
 /// Transfer TIDAK mengubah net worth.
 class Transfers extends Table {
   IntColumn get id => integer().autoIncrement()();
@@ -285,7 +285,7 @@ class DebtPayments extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
-/// Tabel portofolio investasi — sesuai desktop & Milestone 5.
+/// Tabel portofolio investasi.
 class Investments extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get uuid => text().withDefault(const Constant(''))();
@@ -369,7 +369,7 @@ class SavingsGoals extends Table {
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 }
 
-/// Tabel rencana pembelian (Purchase Planning) — sesuai model desktop.
+/// Tabel rencana pembelian (Purchase Planning).
 class PurchasePlans extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get uuid => text().withDefault(const Constant(''))();

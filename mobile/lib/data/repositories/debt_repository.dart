@@ -56,7 +56,7 @@ class EnrichedDebt {
   bool get isPiutang => debt.type == DebtType.piutang;
 }
 
-/// Repository untuk manajemen Hutang dan Piutang sesuai model desktop.
+/// Repository untuk manajemen Hutang dan Piutang.
 class DebtRepository {
   final AppDatabase _db;
   final Uuid _uuid;

@@ -30,7 +30,7 @@ class ExportResult {
 /// - CSV dienkripsi dengan UTF-8 + BOM (\uFEFF) untuk kompatibilitas Excel.
 /// - Perlindungan dari CSV Formula Injection: karakter diawali '=', '+', '-', '@' diawali dengan kutip tunggal (').
 /// - PDF mencantumkan periode, tanggal cetak, format mata uang konsisten (Rupiah), dan ringkasan eksekutif.
-/// - Menggunakan share_plus untuk berbagi file secara aman di Android / Desktop.
+/// - Menggunakan share_plus untuk berbagi file secara aman di perangkat mobile Android.
 class ExportService {
   final AppDatabase _db;
   final ReportService _reportService;
