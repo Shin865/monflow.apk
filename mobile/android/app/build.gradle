@@ -7,8 +7,23 @@ plugins {
 
 def keystoreProperties = new Properties()
 def keystorePropertiesFile = rootProject.file('key.properties')
+if (!keystorePropertiesFile.exists()) {
+    keystorePropertiesFile = file('key.properties')
+}
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
+def resolveStoreFile(String storeFilePath) {
+    if (!storeFilePath) return null
+    def f = file(storeFilePath)
+    if (f.exists()) return f
+    f = rootProject.file(storeFilePath)
+    if (f.exists()) return f
+    // Also check relative to mobile/android/app if defined from root
+    f = file("app/" + storeFilePath)
+    if (f.exists()) return f
+    return file(storeFilePath)
 }
 
 android {
@@ -35,13 +50,10 @@ android {
 
     signingConfigs {
         release {
-            if (keystorePropertiesFile.exists()) {
+            if (keystorePropertiesFile.exists() && keystoreProperties['storeFile']) {
                 keyAlias = keystoreProperties['keyAlias']
                 keyPassword = keystoreProperties['keyPassword']
-                def sf = keystoreProperties['storeFile']
-                if (sf) {
-                    storeFile = rootProject.file(sf).exists() ? rootProject.file(sf) : file(sf)
-                }
+                storeFile = resolveStoreFile(keystoreProperties['storeFile'])
                 storePassword = keystoreProperties['storePassword']
             }
         }
@@ -49,11 +61,32 @@ android {
 
     buildTypes {
         release {
-            if (keystorePropertiesFile.exists() && keystoreProperties['storeFile']) {
-                signingConfig = signingConfigs.release
+            def isCI = System.getenv("CI") == "true" || System.getenv("GITHUB_ACTIONS") == "true"
+            def hasKeyProps = keystorePropertiesFile.exists() &&
+                              keystoreProperties['storeFile'] &&
+                              keystoreProperties['keyAlias'] &&
+                              keystoreProperties['storePassword'] &&
+                              keystoreProperties['keyPassword']
+
+            if (hasKeyProps) {
+                def sf = resolveStoreFile(keystoreProperties['storeFile'])
+                if (!sf.exists()) {
+                    if (isCI) {
+                        throw new GradleException("Release keystore file specified in key.properties was not found at: ${keystoreProperties['storeFile']}")
+                    } else {
+                        logger.warn("WARNING: Keystore file '${keystoreProperties['storeFile']}' not found. Falling back to debug signing for local build.")
+                        signingConfig = signingConfigs.debug
+                    }
+                } else {
+                    signingConfig = signingConfigs.release
+                }
             } else {
-                // Fallback to debug signing if release key is not configured yet
-                signingConfig = signingConfigs.debug
+                if (isCI) {
+                    throw new GradleException("Release build in CI requires release signing configuration! Missing key.properties or missing required keys (storeFile, storePassword, keyAlias, keyPassword).")
+                } else {
+                    logger.warn("WARNING: key.properties not found or incomplete. Falling back to debug signing for local non-CI build.")
+                    signingConfig = signingConfigs.debug
+                }
             }
             minifyEnabled false
             shrinkResources false

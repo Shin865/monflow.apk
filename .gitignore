@@ -86,7 +86,8 @@ skill.md
 # ==========================================
 # Documentation & Specs
 # ==========================================
-docs/
+docs/*
+!docs/SIGNING.md
 doc/
 documentation/
 

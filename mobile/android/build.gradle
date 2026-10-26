@@ -9,10 +9,6 @@ rootProject.buildDir = "../build"
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
 }
-subprojects {
-    project.evaluationDependsOn(":app")
-}
-
 subprojects { project ->
     if (project.name != "app") {
         def configureAndroid = {
@@ -35,6 +31,10 @@ subprojects { project ->
             }
         }
     }
+}
+
+subprojects {
+    project.evaluationDependsOn(":app")
 }
 
 tasks.register("clean", Delete) {

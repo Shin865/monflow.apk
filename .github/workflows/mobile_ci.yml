@@ -63,24 +63,84 @@ jobs:
       - name: Run Unit & Widget Tests
         run: flutter test
 
-      - name: Decode Keystore (Optional Secrets)
+      - name: Configure Release Signing
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-          KEYSTORE_PROPERTIES: ${{ secrets.KEY_PROPERTIES }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          if [ -n "$KEYSTORE_BASE64" ] && [ -n "$KEYSTORE_PROPERTIES" ]; then
-            echo "Configuring release signing from GitHub Secrets..."
-            echo "$KEYSTORE_BASE64" | base64 -d > android/upload-keystore.jks
-            echo "$KEYSTORE_PROPERTIES" > android/key.properties
-          else
-            echo "No signing secrets detected; building with fallback signing config."
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
+            echo "::error::CRITICAL ERROR: Release signing secrets are missing or incomplete!"
+            echo "::error::Please configure the following GitHub Repository Secrets:"
+            echo "::error::  - KEYSTORE_BASE64"
+            echo "::error::  - KEYSTORE_PASSWORD"
+            echo "::error::  - KEY_ALIAS"
+            echo "::error::  - KEY_PASSWORD"
+            echo "::error::See docs/SIGNING.md for complete instructions."
+            exit 1
           fi
 
+          echo "Decoding release keystore to android/app/monflow.jks..."
+          echo "$KEYSTORE_BASE64" | base64 -d > android/app/monflow.jks
+
+          echo "Generating android/key.properties..."
+          cat <<EOF > android/key.properties
+storeFile=monflow.jks
+storePassword=${KEYSTORE_PASSWORD}
+keyAlias=${KEY_ALIAS}
+keyPassword=${KEY_PASSWORD}
+EOF
+
+          chmod 600 android/app/monflow.jks android/key.properties
+          echo "Release signing configured successfully."
+
       - name: Build Universal Release APK
-        run: flutter build apk --release
+        run: |
+          flutter build apk --release \
+            --build-number=${{ github.run_number }} \
+            --build-name=1.0.${{ github.run_number }}
 
       - name: Build Split-per-ABI APKs
-        run: flutter build apk --release --split-per-abi
+        run: |
+          flutter build apk --release --split-per-abi \
+            --build-number=${{ github.run_number }} \
+            --build-name=1.0.${{ github.run_number }}
+
+      - name: Verify APK Signature & Certificate
+        run: |
+          echo "Locating apksigner..."
+          APKSIGNER=$(find $ANDROID_HOME/build-tools -name apksigner | sort -V | tail -n 1)
+          if [ -z "$APKSIGNER" ]; then
+            APKSIGNER="apksigner"
+          fi
+          echo "Using apksigner: $APKSIGNER"
+
+          APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
+          echo "Verifying $APK_PATH..."
+
+          CERT_INFO=$("$APKSIGNER" verify --print-certs "$APK_PATH")
+          echo "Certificate Details:"
+          echo "$CERT_INFO"
+
+          # Extract and print SHA-256 certificate fingerprint
+          SHA256_FINGERPRINT=$(echo "$CERT_INFO" | grep -i "SHA-256 digest" || true)
+          echo "=========================================="
+          echo "Verified Certificate Fingerprint: $SHA256_FINGERPRINT"
+          echo "=========================================="
+
+          # Verify that it is NOT a debug certificate
+          if echo "$CERT_INFO" | grep -iq "Android Debug"; then
+            echo "::error::SECURITY CHECK FAILED: Release APK is signed with an Android Debug key! This will cause package conflict errors on user devices."
+            exit 1
+          fi
+
+          if [ -z "$SHA256_FINGERPRINT" ]; then
+            echo "::error::SECURITY CHECK FAILED: No valid SHA-256 certificate digest found!"
+            exit 1
+          fi
+
+          echo "Signature verification PASSED: APK is signed with a valid non-debug release key."
 
       - name: Prepare Release Artifacts
         run: |
