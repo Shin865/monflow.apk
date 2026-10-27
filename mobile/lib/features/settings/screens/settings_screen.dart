@@ -893,47 +893,62 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.tokens;
     final themeMode = ref.watch(themeModeProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Pengaturan'),
+        title: Text(
+          'Pengaturan',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: tokens.textPrimary,
+          ),
+        ),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.symmetric(horizontal: tokens.pad, vertical: 12),
         children: [
           // App Banner
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
+              color: tokens.surfaceRaised,
+              borderRadius: BorderRadius.circular(tokens.radiusCard),
+              border: Border.all(color: tokens.border),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.show_chart_rounded, color: Colors.white, size: 36),
-                SizedBox(width: 14),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: tokens.surface,
+                    borderRadius: BorderRadius.circular(tokens.radiusControl),
+                    border: Border.all(color: tokens.borderHairline),
+                  ),
+                  child: Icon(Icons.show_chart_rounded,
+                      color: tokens.dataHue, size: 24),
+                ),
+                const SizedBox(width: 12),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'Money Flow',
                       style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
+                        color: tokens.textPrimary,
+                        fontSize: 16,
                         fontWeight: FontWeight.w700,
+                        letterSpacing: -0.3,
                       ),
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Text(
-                      'Versi 1.0.0+1 • Standalone Offline',
+                      'Versi 2.1.1+4 • Standalone Offline',
                       style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 13,
+                        color: tokens.textMuted,
+                        fontSize: 12,
                       ),
                     ),
                   ],
@@ -941,16 +956,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
 
           // Tampilan & Tema Section
-          const Text(
+          Text(
             'TAMPILAN & TEMA',
             style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textMuted,
-              letterSpacing: 1.5,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: tokens.textMuted,
+              letterSpacing: 0.5,
             ),
           ),
           const SizedBox(height: 12),
@@ -1261,26 +1276,30 @@ class _SettingsTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.tokens;
+
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(tokens.radiusCard),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        margin: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Theme.of(context).dividerColor),
+          color: tokens.surface,
+          borderRadius: BorderRadius.circular(tokens.radiusCard),
+          border: Border.all(color: tokens.borderHairline),
         ),
         child: Row(
           children: [
             Container(
-              width: 40,
-              height: 40,
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(10),
+                color: tokens.surfaceRaised,
+                borderRadius: BorderRadius.circular(tokens.radiusControl),
+                border: Border.all(color: tokens.border),
               ),
-              child: Icon(icon, color: iconColor, size: 22),
+              child: Icon(icon, color: tokens.textSecondary, size: 20),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -1290,17 +1309,17 @@ class _SettingsTile extends StatelessWidget {
                   Text(
                     title,
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: Theme.of(context).colorScheme.onSurface,
+                      color: tokens.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textMuted,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: tokens.textMuted,
                     ),
                   ),
                 ],

@@ -1,16 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:money_flow/core/formatting/thousand_separator_formatter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:money_flow/core/database/database.dart';
 import 'package:money_flow/core/formatting/formatters.dart';
+import 'package:money_flow/core/formatting/thousand_separator_formatter.dart';
 import 'package:money_flow/core/theme/app_theme.dart';
 import 'package:money_flow/data/repositories/account_repository.dart';
 import 'package:money_flow/data/repositories/category_repository.dart';
 import 'package:money_flow/data/repositories/transaction_repository.dart';
 
-/// Layar catat atau edit transaksi (pemasukan/pengeluaran/refund).
+/// Layar catat atau ubah transaksi (pemasukan/pengeluaran/refund).
+///
+/// Desain Achromatic Ledger:
+/// - Urutan input logis: Tipe -> Jumlah -> Dompet -> Kategori -> Tanggal -> Deskripsi -> Catatan.
+/// - Input nominal Rupiah kosong saat awal (bukan hardcoded "0").
+/// - Pengetikan nominal dengan pemisah ribuan otomatis dan angka tabular.
+/// - Validasi tepat di bawah field.
 class CreateTransactionScreen extends ConsumerStatefulWidget {
   final int? editTransactionId;
 
@@ -110,18 +116,6 @@ class _CreateTransactionScreenState
       firstDate: DateTime(2020),
       lastDate: DateTime.now().add(const Duration(days: 365)),
       locale: const Locale('id', 'ID'),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: AppColors.primary,
-              surface: AppColors.surface,
-              onSurface: AppColors.textPrimary,
-            ),
-          ),
-          child: child!,
-        );
-      },
     );
     if (picked != null) {
       setState(() => _selectedDate = picked);
@@ -134,7 +128,6 @@ class _CreateTransactionScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Pilih dompet terlebih dahulu'),
-          backgroundColor: AppColors.warning,
         ),
       );
       return;
@@ -143,7 +136,6 @@ class _CreateTransactionScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Pilih kategori terlebih dahulu'),
-          backgroundColor: AppColors.warning,
         ),
       );
       return;
@@ -180,7 +172,6 @@ class _CreateTransactionScreenState
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Perubahan transaksi berhasil disimpan! ✅'),
-              backgroundColor: AppColors.income,
             ),
           );
           context.pop();
@@ -210,7 +201,6 @@ class _CreateTransactionScreenState
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('$typeLabel berhasil dicatat! ✅'),
-              backgroundColor: AppColors.income,
             ),
           );
           context.pop();
@@ -221,7 +211,6 @@ class _CreateTransactionScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Gagal: $e'),
-            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -232,6 +221,8 @@ class _CreateTransactionScreenState
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.tokens;
+
     // Filter kategori berdasarkan tipe transaksi
     final catType = (_selectedType == TransactionType.income ||
             _selectedType == TransactionType.refund)
@@ -242,9 +233,16 @@ class _CreateTransactionScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.editTransactionId != null
-            ? 'Ubah Transaksi'
-            : 'Catat Transaksi'),
+        title: Text(
+          widget.editTransactionId != null
+              ? 'Ubah Transaksi'
+              : 'Catat Transaksi',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: tokens.textPrimary,
+          ),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.close_rounded),
           onPressed: () => context.pop(),
@@ -253,78 +251,89 @@ class _CreateTransactionScreenState
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.symmetric(horizontal: tokens.pad, vertical: 16),
           children: [
-            // === Tipe Transaksi ===
-            const Text('Tipe Transaksi',
-                style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
-                    fontSize: 13)),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                _TypeButton(
-                  label: 'Pengeluaran',
-                  icon: Icons.arrow_upward_rounded,
-                  color: AppColors.expense,
-                  isSelected: _selectedType == TransactionType.expense,
-                  onTap: () {
-                    setState(() {
-                      _selectedType = TransactionType.expense;
-                      _updateCategoriesForType();
-                    });
-                  },
-                ),
-                const SizedBox(width: 8),
-                _TypeButton(
-                  label: 'Pemasukan',
-                  icon: Icons.arrow_downward_rounded,
-                  color: AppColors.income,
-                  isSelected: _selectedType == TransactionType.income,
-                  onTap: () {
-                    setState(() {
-                      _selectedType = TransactionType.income;
-                      _updateCategoriesForType();
-                    });
-                  },
-                ),
-                const SizedBox(width: 8),
-                _TypeButton(
-                  label: 'Refund',
-                  icon: Icons.replay_rounded,
-                  color: AppColors.refund,
-                  isSelected: _selectedType == TransactionType.refund,
-                  onTap: () {
-                    setState(() {
-                      _selectedType = TransactionType.refund;
-                      _updateCategoriesForType();
-                    });
-                  },
-                ),
-              ],
+            // === Tipe Transaksi Segmented Control ===
+            Text(
+              'Tipe Transaksi',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: tokens.textMuted,
+                fontSize: 12,
+              ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: tokens.surfaceRaised,
+                borderRadius: BorderRadius.circular(tokens.radiusControl),
+                border: Border.all(color: tokens.border),
+              ),
+              child: Row(
+                children: [
+                  _TypeButton(
+                    label: 'Pengeluaran',
+                    icon: Icons.arrow_upward_rounded,
+                    activeColor: tokens.expense,
+                    isSelected: _selectedType == TransactionType.expense,
+                    onTap: () {
+                      setState(() {
+                        _selectedType = TransactionType.expense;
+                        _updateCategoriesForType();
+                      });
+                    },
+                  ),
+                  const SizedBox(width: 4),
+                  _TypeButton(
+                    label: 'Pemasukan',
+                    icon: Icons.arrow_downward_rounded,
+                    activeColor: tokens.income,
+                    isSelected: _selectedType == TransactionType.income,
+                    onTap: () {
+                      setState(() {
+                        _selectedType = TransactionType.income;
+                        _updateCategoriesForType();
+                      });
+                    },
+                  ),
+                  const SizedBox(width: 4),
+                  _TypeButton(
+                    label: 'Refund',
+                    icon: Icons.replay_rounded,
+                    activeColor: tokens.warning,
+                    isSelected: _selectedType == TransactionType.refund,
+                    onTap: () {
+                      setState(() {
+                        _selectedType = TransactionType.refund;
+                        _updateCategoriesForType();
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
 
-            // === Jumlah ===
-            const Text('Jumlah (Rp)',
-                style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
-                    fontSize: 13)),
+            // === Jumlah (Rp) Input ===
+            Text(
+              'Jumlah (Rp)',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: tokens.textMuted,
+                fontSize: 12,
+              ),
+            ),
             const SizedBox(height: 8),
             TextFormField(
               controller: _amountController,
               decoration: InputDecoration(
-                hintText: 'Masukkan nominal',
+                hintText: '0',
                 prefixText: 'Rp ',
-                prefixIcon: Icon(
-                  Icons.attach_money_rounded,
-                  color: _selectedType == TransactionType.income
-                      ? AppColors.income
-                      : _selectedType == TransactionType.expense
-                          ? AppColors.expense
-                          : AppColors.refund,
+                prefixStyle: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w600,
+                  color: tokens.textSecondary,
                 ),
               ),
               keyboardType: TextInputType.number,
@@ -332,7 +341,12 @@ class _CreateTransactionScreenState
                 FilteringTextInputFormatter.digitsOnly,
                 ThousandSeparatorInputFormatter(),
               ],
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+                color: tokens.textPrimary,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
               validator: (v) {
                 if (v == null || v.trim().isEmpty) return 'Jumlah wajib diisi';
                 final amount =
@@ -343,33 +357,35 @@ class _CreateTransactionScreenState
                 return null;
               },
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
 
-            // === Dompet ===
-            const Text('Dompet',
-                style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
-                    fontSize: 13)),
+            // === Dompet Picker ===
+            Text(
+              'Dompet',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: tokens.textMuted,
+                fontSize: 12,
+              ),
+            ),
             const SizedBox(height: 8),
             if (_accounts.isEmpty)
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceLight,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.warning.withOpacity(0.5)),
+                  color: tokens.surfaceRaised,
+                  borderRadius: BorderRadius.circular(tokens.radiusControl),
+                  border: Border.all(color: tokens.border),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.warning_amber_rounded,
-                        color: AppColors.warning, size: 20),
+                    Icon(Icons.warning_amber_rounded,
+                        color: tokens.warning, size: 18),
                     const SizedBox(width: 8),
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Buat dompet terlebih dahulu',
-                        style:
-                            TextStyle(color: AppColors.warning, fontSize: 13),
+                        style: TextStyle(color: tokens.warning, fontSize: 12),
                       ),
                     ),
                     TextButton(
@@ -385,72 +401,87 @@ class _CreateTransactionScreenState
                 runSpacing: 8,
                 children: _accounts.map((account) {
                   final isSelected = _selectedAccountId == account.id;
-                  return GestureDetector(
+                  return InkWell(
                     onTap: () =>
                         setState(() => _selectedAccountId = account.id),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
+                    borderRadius: BorderRadius.circular(tokens.radiusChip),
+                    child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 10),
+                          horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
-                        color: isSelected
-                            ? AppColors.primary.withOpacity(0.2)
-                            : AppColors.surfaceLight,
-                        borderRadius: BorderRadius.circular(10),
+                        color:
+                            isSelected ? tokens.surfaceRaised : tokens.surface,
+                        borderRadius: BorderRadius.circular(tokens.radiusChip),
                         border: Border.all(
                           color:
-                              isSelected ? AppColors.primary : AppColors.border,
-                          width: isSelected ? 2 : 1,
+                              isSelected ? tokens.textPrimary : tokens.border,
+                          width: 1,
                         ),
                       ),
-                      child: Text(
-                        account.name,
-                        style: TextStyle(
-                          color: isSelected
-                              ? AppColors.primary
-                              : AppColors.textSecondary,
-                          fontWeight:
-                              isSelected ? FontWeight.w600 : FontWeight.w400,
-                          fontSize: 13,
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.account_balance_wallet_outlined,
+                            size: 14,
+                            color: isSelected
+                                ? tokens.textPrimary
+                                : tokens.textMuted,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            account.name,
+                            style: TextStyle(
+                              color: isSelected
+                                  ? tokens.textPrimary
+                                  : tokens.textSecondary,
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   );
                 }).toList(),
               ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
 
-            // === Kategori ===
-            const Text('Kategori',
-                style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
-                    fontSize: 13)),
+            // === Kategori Picker ===
+            Text(
+              'Kategori',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: tokens.textMuted,
+                fontSize: 12,
+              ),
+            ),
             const SizedBox(height: 8),
             if (filteredCategories.isEmpty)
-              const Text('Tidak ada kategori',
-                  style: TextStyle(color: AppColors.textMuted))
+              Text('Tidak ada kategori yang tersedia.',
+                  style: TextStyle(color: tokens.textMuted, fontSize: 12))
             else
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: filteredCategories.map((cat) {
                   final isSelected = _selectedCategoryId == cat.id;
-                  return GestureDetector(
+                  return InkWell(
                     onTap: () => setState(() => _selectedCategoryId = cat.id),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
+                    borderRadius: BorderRadius.circular(tokens.radiusChip),
+                    child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
+                          horizontal: 10, vertical: 7),
                       decoration: BoxDecoration(
-                        color: isSelected
-                            ? AppColors.primary.withOpacity(0.2)
-                            : AppColors.surfaceLight,
-                        borderRadius: BorderRadius.circular(10),
+                        color:
+                            isSelected ? tokens.surfaceRaised : tokens.surface,
+                        borderRadius: BorderRadius.circular(tokens.radiusChip),
                         border: Border.all(
                           color:
-                              isSelected ? AppColors.primary : AppColors.border,
-                          width: isSelected ? 2 : 1,
+                              isSelected ? tokens.textPrimary : tokens.border,
+                          width: 1,
                         ),
                       ),
                       child: Row(
@@ -460,18 +491,18 @@ class _CreateTransactionScreenState
                             Padding(
                               padding: const EdgeInsets.only(right: 6),
                               child: Text(cat.icon!,
-                                  style: const TextStyle(fontSize: 16)),
+                                  style: const TextStyle(fontSize: 14)),
                             ),
                           Text(
                             cat.name,
                             style: TextStyle(
                               color: isSelected
-                                  ? AppColors.primary
-                                  : AppColors.textSecondary,
+                                  ? tokens.textPrimary
+                                  : tokens.textSecondary,
                               fontWeight: isSelected
                                   ? FontWeight.w600
                                   : FontWeight.w400,
-                              fontSize: 13,
+                              fontSize: 12,
                             ),
                           ),
                         ],
@@ -480,98 +511,102 @@ class _CreateTransactionScreenState
                   );
                 }).toList(),
               ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
 
-            // === Tanggal ===
-            const Text('Tanggal',
-                style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
-                    fontSize: 13)),
+            // === Tanggal Transaksi ===
+            Text(
+              'Tanggal',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: tokens.textMuted,
+                fontSize: 12,
+              ),
+            ),
             const SizedBox(height: 8),
-            GestureDetector(
+            InkWell(
               onTap: _selectDate,
+              borderRadius: BorderRadius.circular(tokens.radiusControl),
               child: Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceLight,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.border),
+                  color: tokens.surface,
+                  borderRadius: BorderRadius.circular(tokens.radiusControl),
+                  border: Border.all(color: tokens.border),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.calendar_today_rounded,
-                        size: 18, color: AppColors.textMuted),
-                    const SizedBox(width: 12),
+                    Icon(Icons.calendar_today_outlined,
+                        size: 16, color: tokens.textSecondary),
+                    const SizedBox(width: 10),
                     Text(
                       formatDateFull(_selectedDate),
-                      style: const TextStyle(
-                          color: AppColors.textPrimary, fontSize: 14),
+                      style: TextStyle(
+                          color: tokens.textPrimary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500),
                     ),
                     const Spacer(),
-                    const Icon(Icons.chevron_right_rounded,
-                        color: AppColors.textMuted),
+                    Icon(Icons.chevron_right_rounded,
+                        color: tokens.textMuted, size: 18),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
 
-            // === Deskripsi ===
-            const Text('Deskripsi (opsional)',
-                style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
-                    fontSize: 13)),
+            // === Deskripsi (Opsional) ===
+            Text(
+              'DESKRIPSI (OPSIONAL)',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: tokens.textMuted,
+                fontSize: 11,
+                letterSpacing: 0.5,
+              ),
+            ),
             const SizedBox(height: 8),
             TextFormField(
               controller: _descController,
               decoration: const InputDecoration(
-                hintText: 'Contoh: Makan siang, Gaji Oktober',
-                prefixIcon: Icon(Icons.edit_note_rounded),
+                hintText: 'Contoh: Belanja bulanan, Bonus proyek',
               ),
               maxLength: 500,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
-            // === Catatan ===
-            const Text('Catatan (opsional)',
-                style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
-                    fontSize: 13)),
+            // === Catatan (Opsional) ===
+            Text(
+              'CATATAN (OPSIONAL)',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: tokens.textMuted,
+                fontSize: 11,
+                letterSpacing: 0.5,
+              ),
+            ),
             const SizedBox(height: 8),
             TextFormField(
               controller: _notesController,
               decoration: const InputDecoration(
-                hintText: 'Catatan tambahan...',
-                prefixIcon: Icon(Icons.note_alt_outlined),
+                hintText: 'Keterangan tambahan...',
               ),
               maxLines: 2,
               maxLength: 1000,
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 28),
 
-            // === Submit ===
+            // === Tombol Simpan ===
             SizedBox(
               width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
+              height: 48,
+              child: FilledButton(
                 onPressed: _isLoading ? null : _submit,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _selectedType == TransactionType.income
-                      ? AppColors.income
-                      : _selectedType == TransactionType.expense
-                          ? AppColors.expense
-                          : AppColors.refund,
-                ),
                 child: _isLoading
                     ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : Text(
                         widget.editTransactionId != null
@@ -584,7 +619,7 @@ class _CreateTransactionScreenState
                       ),
               ),
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 32),
           ],
         ),
       ),
@@ -595,48 +630,49 @@ class _CreateTransactionScreenState
 class _TypeButton extends StatelessWidget {
   final String label;
   final IconData icon;
-  final Color color;
+  final Color activeColor;
   final bool isSelected;
   final VoidCallback onTap;
 
   const _TypeButton({
     required this.label,
     required this.icon,
-    required this.color,
+    required this.activeColor,
     required this.isSelected,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.tokens;
+
     return Expanded(
-      child: GestureDetector(
+      child: InkWell(
         onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 14),
+        borderRadius: BorderRadius.circular(tokens.radiusControl),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color:
-                isSelected ? color.withOpacity(0.15) : AppColors.surfaceLight,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isSelected ? color : AppColors.border,
-              width: isSelected ? 2 : 1,
-            ),
+            color: isSelected ? tokens.surface : Colors.transparent,
+            borderRadius: BorderRadius.circular(tokens.radiusControl),
+            border: isSelected ? Border.all(color: tokens.border) : null,
           ),
-          child: Column(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon,
-                  color: isSelected ? color : AppColors.textMuted, size: 22),
-              const SizedBox(height: 4),
+              Icon(
+                icon,
+                color: isSelected ? activeColor : tokens.textMuted,
+                size: 16,
+              ),
+              const SizedBox(width: 6),
               Text(
                 label,
                 style: TextStyle(
-                  color: isSelected ? color : AppColors.textMuted,
-                  fontSize: 11,
+                  color: isSelected ? tokens.textPrimary : tokens.textMuted,
+                  fontSize: 12,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                 ),
-                textAlign: TextAlign.center,
               ),
             ],
           ),

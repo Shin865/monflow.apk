@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:money_flow/core/database/database.dart';
 import 'package:money_flow/core/formatting/formatters.dart';
+import 'package:money_flow/core/providers/balance_visibility_provider.dart';
 import 'package:money_flow/core/theme/app_theme.dart';
+import 'package:money_flow/core/widgets/common_widgets.dart';
 import 'package:money_flow/data/repositories/account_repository.dart';
 import 'package:money_flow/data/repositories/debt_repository.dart';
 import 'package:money_flow/data/repositories/deposit_repository.dart';
@@ -12,7 +14,6 @@ import 'package:money_flow/data/repositories/purchase_plan_repository.dart';
 import 'package:money_flow/data/repositories/transaction_repository.dart';
 import 'package:money_flow/domain/rules/investment_rules.dart';
 import 'package:money_flow/domain/rules/net_worth_rules.dart';
-import 'package:money_flow/core/providers/balance_visibility_provider.dart';
 
 /// State provider untuk bulan dan tahun yang dipilih pada dashboard.
 final selectedPeriodProvider = StateProvider<DateTime>((ref) {
@@ -20,23 +21,47 @@ final selectedPeriodProvider = StateProvider<DateTime>((ref) {
   return DateTime(now.year, now.month);
 });
 
-/// Dashboard utama keuangan Money Flow — Milestone 5.
+/// Dashboard utama keuangan Money Flow — Achromatic Ledger Aesthetic.
+///
+/// Berorientasi data, bebas template AI slop/gradien ungu, angka tabular,
+/// kontras tinggi dan tenang di kedua tema (terang dan gelap).
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final tokens = context.tokens;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Row(
+        titleSpacing: 16,
+        title: Row(
           children: [
-            Icon(Icons.show_chart_rounded, color: AppColors.primary),
-            SizedBox(width: 8),
-            Text('Money Flow'),
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: tokens.surfaceRaised,
+                borderRadius: BorderRadius.circular(tokens.radiusControl),
+                border: Border.all(color: tokens.border),
+              ),
+              child: Icon(Icons.show_chart_rounded,
+                  color: tokens.dataHue, size: 18),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'Money Flow',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: tokens.textPrimary,
+                letterSpacing: -0.3,
+              ),
+            ),
           ],
         ),
       ),
       body: RefreshIndicator(
+        color: tokens.textPrimary,
         onRefresh: () async {
           ref.invalidate(accountRepositoryProvider);
           ref.invalidate(transactionRepositoryProvider);
@@ -46,69 +71,26 @@ class DashboardScreen extends ConsumerWidget {
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.symmetric(horizontal: tokens.pad, vertical: 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _NetWorthAndBalanceCard(),
               const SizedBox(height: 16),
-              _QuickActions(),
+              _PrimaryQuickActions(),
               const SizedBox(height: 10),
-              const _FinancialFeaturesRow(),
-              const SizedBox(height: 10),
-              const _Milestone5FeaturesRow(),
-              const SizedBox(height: 12),
-              InkWell(
-                onTap: () => context.pushNamed('reports'),
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF1E1B4B), Color(0xFF312E81)],
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF4338CA)),
-                  ),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.analytics_rounded,
-                          color: Colors.cyanAccent, size: 24),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Laporan Keuangan & Analisis',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                  color: Colors.white),
-                            ),
-                            SizedBox(height: 2),
-                            Text(
-                              'Grafik arus kas, pengeluaran per kategori, dan ekspor CSV/PDF',
-                              style: TextStyle(
-                                  fontSize: 11, color: Colors.white70),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Icon(Icons.chevron_right, color: Colors.white70),
-                    ],
-                  ),
-                ),
-              ),
+              _SecondaryShortcutsGrid(),
+              const SizedBox(height: 14),
+              _ReportsBanner(),
               const SizedBox(height: 16),
-              const _Milestone5OverviewCards(),
+              const _PortfolioAndPlanCards(),
               const SizedBox(height: 16),
               _PeriodCashFlowSummary(),
               const SizedBox(height: 16),
               _AccountsList(),
               const SizedBox(height: 16),
               _RecentTransactions(),
+              const SizedBox(height: 24),
             ],
           ),
         ),
@@ -117,14 +99,16 @@ class DashboardScreen extends ConsumerWidget {
   }
 }
 
-/// Kartu Net Worth & Saldo Total Akun Aktif.
+/// Kartu Net Worth & Saldo Total Akun Aktif (Achromatic Ledger Hero Card).
 ///
-/// Net worth dihitung berdasarkan aturan domain audit `NetWorthRules.netWorth`
-/// menggabungkan Saldo Dompet + Investasi + Deposito + Piutang - Hutang.
-/// Tidak ada double counting aset maupun pengeluaran.
+/// Merujuk pada SKILL.md (references/app-screens.md §3 & §5):
+/// - Flat surface raised, border 1px, 0 resting shadow.
+/// - Tabular figures font feature untuk nominal.
+/// - Polarity tenang: aset & net worth jelas tanpa dekorasi neon.
 class _NetWorthAndBalanceCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final tokens = context.tokens;
     final balanceStream =
         ref.watch(accountRepositoryProvider).watchTotalBalance();
     final invStream =
@@ -181,51 +165,31 @@ class _NetWorthAndBalanceCard extends ConsumerWidget {
 
                     return Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            Color(0xFF3730A3),
-                            Color(0xFF5B21B6),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withOpacity(0.35),
-                            blurRadius: 18,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
+                        color: tokens.surfaceRaised,
+                        borderRadius: BorderRadius.circular(tokens.radiusCard),
+                        border: Border.all(color: tokens.border, width: 1),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // Header: Label & Status SQLite + Visibility
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Row(
                                 children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.2),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: const Icon(
-                                        Icons.account_balance_wallet_rounded,
-                                        color: Colors.white,
-                                        size: 20),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  const Text(
+                                  Icon(Icons.account_balance_wallet_outlined,
+                                      size: 16, color: tokens.textMuted),
+                                  const SizedBox(width: 6),
+                                  Text(
                                     'Total Saldo Akun Aktif',
                                     style: TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500,
+                                      color: tokens.textMuted,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.3,
                                     ),
                                   ),
                                 ],
@@ -235,9 +199,9 @@ class _NetWorthAndBalanceCard extends ConsumerWidget {
                                   IconButton(
                                     icon: Icon(
                                       isBalanceHidden
-                                          ? Icons.visibility_off_rounded
-                                          : Icons.visibility_rounded,
-                                      color: Colors.white,
+                                          ? Icons.visibility_off_outlined
+                                          : Icons.visibility_outlined,
+                                      color: tokens.textSecondary,
                                       size: 20,
                                     ),
                                     tooltip: isBalanceHidden
@@ -250,96 +214,127 @@ class _NetWorthAndBalanceCard extends ConsumerWidget {
                                   ),
                                   Container(
                                     padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 4),
+                                        horizontal: 7, vertical: 3),
                                     decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.15),
-                                      borderRadius: BorderRadius.circular(8),
+                                      color: tokens.surface,
+                                      borderRadius: BorderRadius.circular(
+                                          tokens.radiusChip),
+                                      border: Border.all(
+                                          color: tokens.borderHairline),
                                     ),
-                                    child: const Text(
+                                    child: Text(
                                       'Lokal SQLite',
                                       style: TextStyle(
-                                          color: Colors.white70, fontSize: 11),
+                                        color: tokens.textMuted,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
                             ],
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 8),
+
+                          // Hero KPI: Big Number with Tabular Figures
                           Text(
                             BalanceVisibilityNotifier.formatOrMask(
                               totalActiveBalance,
                               isHidden: isBalanceHidden,
                             ),
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: tokens.textPrimary,
                               fontSize: 28,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.5,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: -0.6,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures()
+                              ],
                             ),
                           ),
                           const SizedBox(height: 16),
+
+                          // Hairline divider
                           Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 12),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.22),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Column(
+                            height: 1,
+                            width: double.infinity,
+                            color: tokens.borderHairline,
+                          ),
+                          const SizedBox(height: 12),
+
+                          // Sub-metrics: Total Aset & Net Worth
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text(
+                                    Text(
                                       'Total Aset',
                                       style: TextStyle(
-                                          color: Colors.white70, fontSize: 11),
+                                        color: tokens.textMuted,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                     ),
-                                    const SizedBox(height: 2),
+                                    const SizedBox(height: 3),
                                     Text(
                                       BalanceVisibilityNotifier.formatOrMask(
                                         totalAssets,
                                         isHidden: isBalanceHidden,
                                       ),
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w700,
+                                      style: TextStyle(
+                                        color: tokens.textPrimary,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        fontFeatures: const [
+                                          FontFeature.tabularFigures()
+                                        ],
                                       ),
                                     ),
                                   ],
                                 ),
-                                Container(
-                                  width: 1,
-                                  height: 28,
-                                  color: Colors.white24,
-                                ),
-                                Column(
+                              ),
+                              Container(
+                                width: 1,
+                                height: 26,
+                                color: tokens.borderHairline,
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
-                                    const Text(
+                                    Text(
                                       'Kekayaan Bersih (Net Worth)',
                                       style: TextStyle(
-                                          color: Colors.white70, fontSize: 11),
+                                        color: tokens.textMuted,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                     ),
-                                    const SizedBox(height: 2),
+                                    const SizedBox(height: 3),
                                     Text(
                                       BalanceVisibilityNotifier.formatOrMask(
                                         netWorth,
                                         isHidden: isBalanceHidden,
                                       ),
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 15,
+                                      style: TextStyle(
+                                        color: netWorth >= 0
+                                            ? tokens.income
+                                            : tokens.expense,
+                                        fontSize: 14,
                                         fontWeight: FontWeight.w700,
+                                        fontFeatures: const [
+                                          FontFeature.tabularFigures()
+                                        ],
                                       ),
                                     ),
                                   ],
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -355,124 +350,223 @@ class _NetWorthAndBalanceCard extends ConsumerWidget {
   }
 }
 
-/// Aksi cepat (Quick Actions) mencakup Pemasukan, Pengeluaran, Transfer, dan Dompet Baru.
-class _QuickActions extends StatelessWidget {
+/// Aksi Utama Transaksi (Pemasukan, Pengeluaran, Transfer)
+///
+/// Hierarki primer yang jelas, bukan 9 kotak pelangi bersaing (SKILL.md §13 Tells).
+class _PrimaryQuickActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final tokens = context.tokens;
+
     return Row(
       children: [
         Expanded(
-          child: _ActionButton(
-            icon: Icons.add_circle_outline_rounded,
+          child: _PrimaryActionButton(
             label: 'Pemasukan',
-            color: AppColors.income,
+            icon: Icons.add_circle_outline_rounded,
+            accentColor: tokens.income,
             onTap: () => context.pushNamed('create_transaction'),
           ),
         ),
         const SizedBox(width: 8),
         Expanded(
-          child: _ActionButton(
-            icon: Icons.remove_circle_outline_rounded,
+          child: _PrimaryActionButton(
             label: 'Pengeluaran',
-            color: AppColors.expense,
+            icon: Icons.remove_circle_outline_rounded,
+            accentColor: tokens.expense,
             onTap: () => context.pushNamed('create_transaction'),
           ),
         ),
         const SizedBox(width: 8),
         Expanded(
-          child: _ActionButton(
-            icon: Icons.swap_horiz_rounded,
+          child: _PrimaryActionButton(
             label: 'Transfer',
-            color: AppColors.transfer,
+            icon: Icons.swap_horiz_rounded,
+            accentColor: tokens.dataHue,
             onTap: () => context.pushNamed('create_transfer'),
           ),
         ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _ActionButton(
-            icon: Icons.account_balance_wallet_outlined,
-            label: 'Dompet Baru',
-            color: AppColors.primary,
-            onTap: () => context.pushNamed('create_account'),
-          ),
-        ),
       ],
     );
   }
 }
 
-class _FinancialFeaturesRow extends StatelessWidget {
-  const _FinancialFeaturesRow();
+class _PrimaryActionButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color accentColor;
+  final VoidCallback onTap;
+
+  const _PrimaryActionButton({
+    required this.label,
+    required this.icon,
+    required this.accentColor,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _ActionButton(
-            icon: Icons.category_rounded,
-            label: 'Kategori',
-            color: AppColors.income,
-            onTap: () => context.pushNamed('categories'),
-          ),
+    final tokens = context.tokens;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(tokens.radiusControl),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
+        decoration: BoxDecoration(
+          color: tokens.surfaceRaised,
+          borderRadius: BorderRadius.circular(tokens.radiusControl),
+          border: Border.all(color: tokens.border, width: 1),
         ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _ActionButton(
-            icon: Icons.receipt_long_rounded,
-            label: 'Tagihan',
-            color: AppColors.warning,
-            onTap: () => context.pushNamed('bills'),
-          ),
+        child: Column(
+          children: [
+            Icon(icon, color: accentColor, size: 20),
+            const SizedBox(height: 5),
+            Text(
+              label,
+              style: TextStyle(
+                color: tokens.textPrimary,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _ActionButton(
-            icon: Icons.handshake_outlined,
-            label: 'Hutang / Piutang',
-            color: AppColors.transfer,
-            onTap: () => context.pushNamed('debts'),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
 
-class _Milestone5FeaturesRow extends StatelessWidget {
-  const _Milestone5FeaturesRow();
-
+/// Pintasan Fitur Keuangan Sekunder (Dompet Baru, Kategori, Tagihan, Hutang, Investasi, Rencana)
+///
+/// Ditampilkan sebagai baris/grid tenang netral, tanpa background warna-warni kontras tinggi.
+class _SecondaryShortcutsGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _ActionButton(
-            icon: Icons.trending_up_rounded,
-            label: 'Investasi & Deposito',
-            color: AppColors.primary,
-            onTap: () => context.pushNamed('investments'),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _ActionButton(
-            icon: Icons.shopping_bag_rounded,
-            label: 'Rencana Pembelian',
-            color: Colors.purpleAccent,
-            onTap: () => context.pushNamed('planning'),
-          ),
-        ),
-      ],
+    final tokens = context.tokens;
+
+    final shortcuts = [
+      (
+        label: 'Dompet Baru',
+        icon: Icons.account_balance_wallet_outlined,
+        route: 'create_account'
+      ),
+      (label: 'Kategori', icon: Icons.category_outlined, route: 'categories'),
+      (label: 'Tagihan', icon: Icons.receipt_long_outlined, route: 'bills'),
+      (
+        label: 'Hutang / Piutang',
+        icon: Icons.handshake_outlined,
+        route: 'debts'
+      ),
+      (
+        label: 'Investasi',
+        icon: Icons.trending_up_rounded,
+        route: 'investments'
+      ),
+      (label: 'Rencana', icon: Icons.shopping_bag_outlined, route: 'planning'),
+    ];
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+      decoration: BoxDecoration(
+        color: tokens.surface,
+        borderRadius: BorderRadius.circular(tokens.radiusControl),
+        border: Border.all(color: tokens.borderHairline),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: shortcuts.map((item) {
+          return InkWell(
+            onTap: () => context.pushNamed(item.route),
+            borderRadius: BorderRadius.circular(tokens.radiusControl),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(item.icon, size: 18, color: tokens.textSecondary),
+                  const SizedBox(height: 4),
+                  Text(
+                    item.label,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                      color: tokens.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
 }
 
-class _Milestone5OverviewCards extends ConsumerWidget {
-  const _Milestone5OverviewCards();
+/// Banner Laporan & Analisis Arus Kas.
+///
+/// Bersih dan tenang, menggantikan gradien ungu sci-fi dengan MfCard achromatic.
+class _ReportsBanner extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.tokens;
+
+    return MfCard(
+      onTap: () => context.pushNamed('reports'),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: tokens.surfaceRaised,
+              borderRadius: BorderRadius.circular(tokens.radiusControl),
+              border: Border.all(color: tokens.border),
+            ),
+            child:
+                Icon(Icons.analytics_outlined, color: tokens.dataHue, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Laporan Keuangan & Analisis',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    color: tokens.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Grafik arus kas, alokasi kategori, dan ekspor CSV/PDF',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: tokens.textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Icon(Icons.chevron_right_rounded, color: tokens.textMuted, size: 20),
+        ],
+      ),
+    );
+  }
+}
+
+/// Ringkasan Portofolio Investasi & Rencana Belanja (Milestone 5).
+class _PortfolioAndPlanCards extends ConsumerWidget {
+  const _PortfolioAndPlanCards();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final tokens = context.tokens;
     final invSummaryStream =
         ref.watch(investmentRepositoryProvider).watchPortfolioSummary();
     final depSummaryStream =
@@ -483,12 +577,12 @@ class _Milestone5OverviewCards extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Portofolio & Rencana Keuangan',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        const MfSectionHeader(
+          title: 'Portofolio & Rencana Keuangan',
         ),
-        const SizedBox(height: 10),
-        // 1. Kartu Ringkasan Investasi & Deposito
+        const SizedBox(height: 6),
+
+        // 1. Ringkasan Investasi & Deposito
         StreamBuilder<PortfolioSummary>(
           stream: invSummaryStream,
           builder: (context, invSnap) {
@@ -511,91 +605,94 @@ class _Milestone5OverviewCards extends ConsumerWidget {
                       count: 0,
                     );
 
-                return InkWell(
+                return MfCard(
                   onTap: () => context.pushNamed('investments'),
-                  borderRadius: BorderRadius.circular(14),
-                  child: Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Row(
-                              children: [
-                                Icon(Icons.trending_up_rounded,
-                                    color: AppColors.primary, size: 20),
-                                SizedBox(width: 8),
-                                Text(
-                                  'Investasi & Deposito',
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.trending_up_rounded,
+                                  color: tokens.dataHue, size: 18),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Investasi & Deposito',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                  color: tokens.textPrimary,
                                 ),
-                              ],
-                            ),
-                            Text(
-                              '${inv.count} Inv • ${dep.count} Dep',
-                              style: const TextStyle(
-                                  fontSize: 12, color: Colors.white54),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('Nilai Pasar Investasi',
-                                    style: TextStyle(
-                                        fontSize: 11, color: Colors.white54)),
-                                const SizedBox(height: 2),
-                                Text(
-                                  formatRupiah(inv.totalValue),
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
+                              ),
+                            ],
+                          ),
+                          MfPill.neutral(
+                            context,
+                            '${inv.count} Inv • ${dep.count} Dep',
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Nilai Pasar Investasi',
+                                style: TextStyle(
+                                    fontSize: 11, color: tokens.textMuted),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                formatRupiah(inv.totalValue),
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: tokens.textPrimary,
+                                  fontFeatures: const [
+                                    FontFeature.tabularFigures()
+                                  ],
                                 ),
-                              ],
-                            ),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                const Text('Pokok Deposito',
-                                    style: TextStyle(
-                                        fontSize: 11, color: Colors.white54)),
-                                const SizedBox(height: 2),
-                                Text(
-                                  formatRupiah(dep.totalPrincipal),
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
+                              ),
+                            ],
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                'Pokok Deposito',
+                                style: TextStyle(
+                                    fontSize: 11, color: tokens.textMuted),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                formatRupiah(dep.totalPrincipal),
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: tokens.textPrimary,
+                                  fontFeatures: const [
+                                    FontFeature.tabularFigures()
+                                  ],
                                 ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 );
               },
             );
           },
         ),
-        const SizedBox(height: 10),
-        // 2. Kartu Ringkasan Rencana Pembelian
+        const SizedBox(height: 8),
+
+        // 2. Ringkasan Rencana Pembelian
         StreamBuilder<PurchasePlanSummary>(
           stream: plansStream,
           builder: (context, planSnap) {
@@ -607,82 +704,85 @@ class _Milestone5OverviewCards extends ConsumerWidget {
                   achievedCount: 0,
                 );
 
-            return InkWell(
+            return MfCard(
               onTap: () => context.pushNamed('planning'),
-              borderRadius: BorderRadius.circular(14),
-              child: Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Row(
-                          children: [
-                            Icon(Icons.shopping_bag_rounded,
-                                color: Colors.purpleAccent, size: 20),
-                            SizedBox(width: 8),
-                            Text(
-                              'Rencana Pembelian',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 14),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.shopping_bag_outlined,
+                              color: tokens.textSecondary, size: 18),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Rencana Pembelian',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                              color: tokens.textPrimary,
                             ),
-                          ],
-                        ),
-                        Text(
-                          '${plans.activeCount} Aktif • ${plans.achievedCount} Selesai',
-                          style: const TextStyle(
-                              fontSize: 12, color: Colors.white54),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('Total Rencana Belanja Aktif',
-                                style: TextStyle(
-                                    fontSize: 11, color: Colors.white54)),
-                            const SizedBox(height: 2),
-                            Text(
-                              formatRupiah(plans.totalActiveTarget),
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
+                          ),
+                        ],
+                      ),
+                      MfPill.neutral(
+                        context,
+                        '${plans.activeCount} Aktif • ${plans.achievedCount} Selesai',
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Target Belanja Aktif',
+                            style: TextStyle(
+                                fontSize: 11, color: tokens.textMuted),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            formatRupiah(plans.totalActiveTarget),
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: tokens.textPrimary,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures()
+                              ],
                             ),
-                          ],
-                        ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            const Text('Total Terealisasi',
-                                style: TextStyle(
-                                    fontSize: 11, color: Colors.white54)),
-                            const SizedBox(height: 2),
-                            Text(
-                              formatRupiah(plans.totalHistoryTarget),
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.income,
-                              ),
+                          ),
+                        ],
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            'Total Terealisasi',
+                            style: TextStyle(
+                                fontSize: 11, color: tokens.textMuted),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            formatRupiah(plans.totalHistoryTarget),
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: tokens.income,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures()
+                              ],
                             ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
               ),
             );
           },
@@ -692,88 +792,38 @@ class _Milestone5OverviewCards extends ConsumerWidget {
   }
 }
 
-class _ActionButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _ActionButton({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withOpacity(0.2)),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Ringkasan Pemasukan & Pengeluaran untuk Periode Terpilih.
-/// Transfer TIDAK dihitung sebagai pemasukan atau pengeluaran.
+/// Ringkasan Arus Kas untuk Periode Terpilih.
+///
+/// Merujuk pada aturan akuntansi: Transfer netral dan tidak tercatat di pemasukan/pengeluaran.
 class _PeriodCashFlowSummary extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final tokens = context.tokens;
     final period = ref.watch(selectedPeriodProvider);
     final summaryStream = ref
         .watch(transactionRepositoryProvider)
         .watchMonthlySummary(period.year, period.month);
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
+    return MfCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Ringkasan Arus Kas',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
+                  color: tokens.textPrimary,
                 ),
               ),
               Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.chevron_left, size: 20),
+                    icon: Icon(Icons.chevron_left_rounded,
+                        size: 20, color: tokens.textSecondary),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                     onPressed: () {
@@ -781,18 +831,19 @@ class _PeriodCashFlowSummary extends ConsumerWidget {
                           DateTime(period.year, period.month - 1);
                     },
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 8),
                   Text(
                     _formatMonthYear(period),
-                    style: const TextStyle(
-                      fontSize: 13,
+                    style: TextStyle(
+                      fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
+                      color: tokens.textPrimary,
                     ),
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 8),
                   IconButton(
-                    icon: const Icon(Icons.chevron_right, size: 20),
+                    icon: Icon(Icons.chevron_right_rounded,
+                        size: 20, color: tokens.textSecondary),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                     onPressed: () {
@@ -804,7 +855,7 @@ class _PeriodCashFlowSummary extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           StreamBuilder<MonthlySummary>(
             stream: summaryStream,
             builder: (context, snapshot) {
@@ -813,36 +864,45 @@ class _PeriodCashFlowSummary extends ConsumerWidget {
               final expense = summary?.expense ?? 0;
               final netFlow = summary?.netFlow ?? 0;
 
-              return Row(
-                children: [
-                  Expanded(
-                    child: _CashFlowMetric(
-                      title: 'Pemasukan',
-                      amount: income,
-                      color: AppColors.income,
-                      icon: Icons.arrow_downward_rounded,
+              return Container(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  color: tokens.surfaceRaised,
+                  borderRadius: BorderRadius.circular(tokens.radiusControl),
+                  border: Border.all(color: tokens.borderHairline),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _CashFlowCell(
+                        label: 'Pemasukan',
+                        amount: income,
+                        color: tokens.income,
+                        sign: '+',
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _CashFlowMetric(
-                      title: 'Pengeluaran',
-                      amount: expense,
-                      color: AppColors.expense,
-                      icon: Icons.arrow_upward_rounded,
+                    Container(
+                        width: 1, height: 32, color: tokens.borderHairline),
+                    Expanded(
+                      child: _CashFlowCell(
+                        label: 'Pengeluaran',
+                        amount: expense,
+                        color: tokens.expense,
+                        sign: '-',
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _CashFlowMetric(
-                      title: 'Selisih Bersih',
-                      amount: netFlow,
-                      color:
-                          netFlow >= 0 ? AppColors.income : AppColors.expense,
-                      icon: Icons.stacked_line_chart_rounded,
+                    Container(
+                        width: 1, height: 32, color: tokens.borderHairline),
+                    Expanded(
+                      child: _CashFlowCell(
+                        label: 'Selisih Bersih',
+                        amount: netFlow,
+                        color: netFlow >= 0 ? tokens.income : tokens.expense,
+                        sign: netFlow > 0 ? '+' : '',
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               );
             },
           ),
@@ -870,55 +930,46 @@ class _PeriodCashFlowSummary extends ConsumerWidget {
   }
 }
 
-class _CashFlowMetric extends StatelessWidget {
-  final String title;
+class _CashFlowCell extends StatelessWidget {
+  final String label;
   final int amount;
   final Color color;
-  final IconData icon;
+  final String sign;
 
-  const _CashFlowMetric({
-    required this.title,
+  const _CashFlowCell({
+    required this.label,
     required this.amount,
     required this.color,
-    required this.icon,
+    required this.sign,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(12),
-      ),
+    final tokens = context.tokens;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Row(
-            children: [
-              Icon(icon, size: 14, color: color),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: color,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
           Text(
-            formatRupiah(amount),
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              color: tokens.textMuted,
+              fontWeight: FontWeight.w500,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '$sign${formatRupiah(amount.abs())}',
             style: TextStyle(
               fontSize: 12,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w700,
               color: color,
+              fontFeatures: const [FontFeature.tabularFigures()],
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -929,10 +980,11 @@ class _CashFlowMetric extends StatelessWidget {
   }
 }
 
-/// Daftar akun ringkas.
+/// Daftar akun ringkas (48px table rows per SKILL.md §8).
 class _AccountsList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final tokens = context.tokens;
     final accountsStream =
         ref.watch(accountRepositoryProvider).watchActiveAccounts();
 
@@ -944,28 +996,22 @@ class _AccountsList extends ConsumerWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Dompet',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                TextButton(
-                  onPressed: () => context.goNamed('accounts'),
-                  child: const Text('Lihat Semua'),
-                ),
-              ],
+            MfSectionHeader(
+              title: 'Dompet',
+              trailing: TextButton(
+                onPressed: () => context.goNamed('accounts'),
+                child: Text('Lihat Semua',
+                    style: TextStyle(
+                        color: tokens.textSecondary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600)),
+              ),
             ),
-            const SizedBox(height: 8),
             if (accounts.isEmpty)
-              _EmptyState(
+              MfEmptyState(
                 icon: Icons.account_balance_wallet_outlined,
-                message: 'Belum ada dompet aktif. Buat dompet pertamamu!',
+                title: 'Belum ada dompet aktif',
+                subtitle: 'Buat dompet pertamamu untuk mulai mencatat keuangan',
                 actionLabel: 'Buat Dompet',
                 onAction: () => context.pushNamed('create_account'),
               )
@@ -988,15 +1034,15 @@ class _AccountTile extends ConsumerWidget {
   IconData _getAccountIcon(AccountType type) {
     switch (type) {
       case AccountType.cash:
-        return Icons.payments_rounded;
+        return Icons.payments_outlined;
       case AccountType.bank:
-        return Icons.account_balance_rounded;
+        return Icons.account_balance_outlined;
       case AccountType.ewallet:
-        return Icons.phone_android_rounded;
+        return Icons.phone_android_outlined;
       case AccountType.savings:
-        return Icons.savings_rounded;
+        return Icons.savings_outlined;
       case AccountType.other:
-        return Icons.wallet_rounded;
+        return Icons.wallet_outlined;
     }
   }
 
@@ -1017,48 +1063,50 @@ class _AccountTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final color = account.color != null
-        ? Color(int.parse(account.color!.replaceFirst('#', '0xFF')))
-        : AppColors.primary;
+    final tokens = context.tokens;
     final isBalanceHidden = ref.watch(balanceVisibilityProvider);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
+        color: tokens.surface,
+        borderRadius: BorderRadius.circular(tokens.radiusCard),
+        border: Border.all(color: tokens.borderHairline),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(12),
+              color: tokens.surfaceRaised,
+              borderRadius: BorderRadius.circular(tokens.radiusControl),
+              border: Border.all(color: tokens.border),
             ),
-            child: Icon(_getAccountIcon(account.type), color: color, size: 22),
+            child: Icon(_getAccountIcon(account.type),
+                color: tokens.textSecondary, size: 18),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   account.name,
-                  style: const TextStyle(
-                    fontSize: 14,
+                  style: TextStyle(
+                    fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                    color: tokens.textPrimary,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
                 Text(
                   _getAccountTypeLabel(account.type),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textMuted,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: tokens.textMuted,
                   ),
                 ),
               ],
@@ -1070,10 +1118,10 @@ class _AccountTile extends ConsumerWidget {
               isHidden: isBalanceHidden,
             ),
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 13,
               fontWeight: FontWeight.w700,
-              color:
-                  account.balance >= 0 ? AppColors.income : AppColors.expense,
+              color: tokens.textPrimary,
+              fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
         ],
@@ -1082,10 +1130,11 @@ class _AccountTile extends ConsumerWidget {
   }
 }
 
-/// Transaksi terakhir.
+/// Transaksi terakhir dengan alignment tabular angka.
 class _RecentTransactions extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final tokens = context.tokens;
     final txnStream = ref
         .watch(transactionRepositoryProvider)
         .watchRecentTransactions(limit: 5);
@@ -1098,28 +1147,22 @@ class _RecentTransactions extends ConsumerWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Transaksi Terakhir',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                TextButton(
-                  onPressed: () => context.goNamed('transactions'),
-                  child: const Text('Lihat Semua'),
-                ),
-              ],
+            MfSectionHeader(
+              title: 'Transaksi Terakhir',
+              trailing: TextButton(
+                onPressed: () => context.goNamed('transactions'),
+                child: Text('Lihat Semua',
+                    style: TextStyle(
+                        color: tokens.textSecondary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600)),
+              ),
             ),
-            const SizedBox(height: 8),
             if (transactions.isEmpty)
-              _EmptyState(
+              MfEmptyState(
                 icon: Icons.receipt_long_outlined,
-                message: 'Belum ada transaksi.',
+                title: 'Belum ada transaksi',
+                subtitle: 'Mulai dengan mencatat pemasukan atau pengeluaran',
                 actionLabel: 'Catat Transaksi',
                 onAction: () => context.pushNamed('create_transaction'),
               )
@@ -1139,30 +1182,33 @@ class _TransactionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.tokens;
     final txn = enriched.transaction;
     final isIncome = txn.type == TransactionType.income ||
         txn.type == TransactionType.refund;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        color: tokens.surface,
+        borderRadius: BorderRadius.circular(tokens.radiusCard),
+        border: Border.all(color: tokens.borderHairline),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            width: 32,
+            height: 32,
+            alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: (isIncome ? AppColors.income : AppColors.expense)
-                  .withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
+              color: tokens.surfaceRaised,
+              borderRadius: BorderRadius.circular(tokens.radiusControl),
+              border: Border.all(color: tokens.border),
             ),
             child: Text(
               enriched.categoryIcon ?? (isIncome ? '📥' : '📤'),
-              style: const TextStyle(fontSize: 18),
+              style: const TextStyle(fontSize: 16),
             ),
           ),
           const SizedBox(width: 12),
@@ -1172,10 +1218,10 @@ class _TransactionTile extends StatelessWidget {
               children: [
                 Text(
                   enriched.categoryName ?? txn.description ?? 'Transaksi',
-                  style: const TextStyle(
-                    fontSize: 14,
+                  style: TextStyle(
+                    fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                    color: tokens.textPrimary,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -1183,8 +1229,10 @@ class _TransactionTile extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   '${enriched.accountName ?? ""} • ${formatDate(txn.date)}',
-                  style:
-                      const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: tokens.textMuted,
+                  ),
                 ),
               ],
             ),
@@ -1194,57 +1242,10 @@ class _TransactionTile extends StatelessWidget {
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: isIncome ? AppColors.income : AppColors.expense,
+              color: isIncome ? tokens.income : tokens.expense,
+              fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  final IconData icon;
-  final String message;
-  final String? actionLabel;
-  final VoidCallback? onAction;
-
-  const _EmptyState({
-    required this.icon,
-    required this.message,
-    this.actionLabel,
-    this.onAction,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, size: 44, color: AppColors.textMuted),
-          const SizedBox(height: 12),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: AppColors.textMuted,
-              fontSize: 13,
-            ),
-          ),
-          if (actionLabel != null && onAction != null) ...[
-            const SizedBox(height: 14),
-            ElevatedButton(
-              onPressed: onAction,
-              child: Text(actionLabel!),
-            ),
-          ],
         ],
       ),
     );

@@ -143,96 +143,97 @@ class _AboutScreenState extends State<AboutScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.tokens;
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tentang Aplikasi'),
+        title: Text(
+          'Tentang Aplikasi',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: tokens.textPrimary,
+          ),
+        ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.symmetric(horizontal: tokens.pad, vertical: 16),
         child: Column(
           children: [
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
-            // Logo & Identity
+            // Logo & Identity (Clean achromatic ledger mark)
             Container(
-              width: 88,
-              height: 88,
+              width: 72,
+              height: 72,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF4F46E5)
-                        .withOpacity(isDark ? 0.35 : 0.25),
-                    blurRadius: 24,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
+                color: tokens.surfaceRaised,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: tokens.border, width: 1.5),
               ),
-              child: const Center(
+              child: Center(
                 child: Icon(
                   Icons.show_chart_rounded,
-                  color: Colors.white,
-                  size: 48,
+                  color: tokens.dataHue,
+                  size: 38,
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
 
             Text(
               'Money Flow',
-              style: theme.textTheme.headlineMedium?.copyWith(
+              style: TextStyle(
+                fontSize: 22,
                 fontWeight: FontWeight.w800,
+                color: tokens.textPrimary,
                 letterSpacing: -0.5,
-              ),
-            ),
-            const SizedBox(height: 6),
-
-            Text(
-              'Versi $_appVersion+$_buildNumber',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: AppColors.textMuted,
               ),
             ),
             const SizedBox(height: 4),
 
             Text(
+              'Versi $_appVersion+$_buildNumber',
+              style: TextStyle(
+                fontSize: 13,
+                color: tokens.textMuted,
+              ),
+            ),
+            const SizedBox(height: 2),
+
+            Text(
               'Pencatatan Keuangan Mandiri & Aman',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: AppColors.textMuted,
+              style: TextStyle(
+                fontSize: 12,
+                color: tokens.textMuted,
               ),
             ),
 
-            const SizedBox(height: 32),
+            const SizedBox(height: 28),
 
             // About Card
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: theme.cardColor,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: theme.dividerColor),
+                color: tokens.surfaceRaised,
+                borderRadius: BorderRadius.circular(tokens.radiusCard),
+                border: Border.all(color: tokens.border),
               ),
-              child: const Column(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'Tentang',
                     style: TextStyle(
-                      fontSize: 15,
+                      fontSize: 14,
                       fontWeight: FontWeight.w700,
+                      color: tokens.textPrimary,
                     ),
                   ),
-                  SizedBox(height: 10),
-                  Text(
+                  const SizedBox(height: 10),
+                  const Text(
                     'Money Flow adalah aplikasi pengelolaan keuangan pribadi '
                     'yang membantu pengguna mencatat dan memantau kondisi keuangan. '
                     'Semua data tersimpan secara aman di perangkat Anda demi privasi maksimal.\n\n'
@@ -351,26 +352,30 @@ class _AboutScreenState extends State<AboutScreen> {
     required String subtitle,
     required VoidCallback? onTap,
   }) {
+    final tokens = context.tokens;
+
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(tokens.radiusCard),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        margin: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Theme.of(context).dividerColor),
+          color: tokens.surface,
+          borderRadius: BorderRadius.circular(tokens.radiusCard),
+          border: Border.all(color: tokens.borderHairline),
         ),
         child: Row(
           children: [
             Container(
-              width: 40,
-              height: 40,
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(10),
+                color: tokens.surfaceRaised,
+                borderRadius: BorderRadius.circular(tokens.radiusControl),
+                border: Border.all(color: tokens.border),
               ),
-              child: Icon(icon, color: iconColor, size: 22),
+              child: Icon(icon, color: tokens.textSecondary, size: 20),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -380,25 +385,25 @@ class _AboutScreenState extends State<AboutScreen> {
                   Text(
                     title,
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: Theme.of(context).colorScheme.onSurface,
+                      color: tokens.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textMuted,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: tokens.textMuted,
                     ),
                   ),
                 ],
               ),
             ),
             if (onTap != null)
-              const Icon(Icons.chevron_right_rounded,
-                  color: AppColors.textMuted, size: 20),
+              Icon(Icons.chevron_right_rounded,
+                  color: tokens.textMuted, size: 20),
           ],
         ),
       ),

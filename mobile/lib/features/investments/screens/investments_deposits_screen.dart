@@ -1204,19 +1204,15 @@ class _InvestmentsTab extends ConsumerWidget {
                     count: 0,
                   );
 
+              final tokens = context.tokens;
               final isPositive = summary.totalGain >= 0;
 
               return Container(
-                padding: const EdgeInsets.all(18),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [
-                      Color(0xFF1E293B),
-                      Color(0xFF0F172A),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.border),
+                  color: tokens.surfaceRaised,
+                  borderRadius: BorderRadius.circular(tokens.radiusCard),
+                  border: Border.all(color: tokens.border),
                 ),
                 child: Column(
                   children: [
@@ -1226,16 +1222,15 @@ class _InvestmentsTab extends ConsumerWidget {
                         _StatBox(
                           label: 'Total Modal',
                           value: formatRupiah(summary.totalCost),
-                          color: Colors.white70,
                         ),
                         _StatBox(
                           label: 'Nilai Sekarang',
                           value: formatRupiah(summary.totalValue),
-                          color: AppColors.primary,
+                          color: tokens.dataHue,
                         ),
                       ],
                     ),
-                    const Divider(height: 24, color: AppColors.border),
+                    Divider(height: 20, color: tokens.borderHairline),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -1243,15 +1238,13 @@ class _InvestmentsTab extends ConsumerWidget {
                           label: 'Keuntungan (Rp)',
                           value:
                               '${isPositive ? '+' : ''}${formatRupiah(summary.totalGain)}',
-                          color:
-                              isPositive ? AppColors.income : AppColors.expense,
+                          color: isPositive ? tokens.income : tokens.expense,
                         ),
                         _StatBox(
                           label: 'Imbal Hasil (%)',
                           value:
                               '${isPositive ? '+' : ''}${summary.returnPercent.toStringAsFixed(2)}%',
-                          color:
-                              isPositive ? AppColors.income : AppColors.expense,
+                          color: isPositive ? tokens.income : tokens.expense,
                         ),
                       ],
                     ),
@@ -1490,17 +1483,14 @@ class _DepositsTab extends ConsumerWidget {
                     count: 0,
                   );
 
+              final tokens = context.tokens;
+
               return Container(
-                padding: const EdgeInsets.all(18),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [
-                      Color(0xFF1E293B),
-                      Color(0xFF0F172A),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.border),
+                  color: tokens.surfaceRaised,
+                  borderRadius: BorderRadius.circular(tokens.radiusCard),
+                  border: Border.all(color: tokens.border),
                 ),
                 child: Column(
                   children: [
@@ -1510,29 +1500,27 @@ class _DepositsTab extends ConsumerWidget {
                         _StatBox(
                           label: 'Total Pokok Deposito',
                           value: formatRupiah(summary.totalPrincipal),
-                          color: Colors.white,
                         ),
                         _StatBox(
                           label: 'Estimasi Bunga Bersih',
                           value:
                               formatRupiah(summary.totalEstimatedNetInterest),
-                          color: AppColors.income,
+                          color: tokens.income,
                         ),
                       ],
                     ),
-                    const Divider(height: 24, color: AppColors.border),
+                    Divider(height: 20, color: tokens.borderHairline),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         _StatBox(
                           label: 'Total Nilai Jatuh Tempo',
                           value: formatRupiah(summary.totalMaturityAmount),
-                          color: AppColors.primary,
+                          color: tokens.dataHue,
                         ),
                         _StatBox(
                           label: 'Deposito Aktif',
                           value: '${summary.count} Simpanan',
-                          color: Colors.white70,
                         ),
                       ],
                     ),
@@ -1582,22 +1570,22 @@ class _DepositsTab extends ConsumerWidget {
                     feeAmount: dep.feeAmount,
                   );
 
+                  final tokens = context.tokens;
                   final ratePercent = dep.annualRateBps / 100.0;
                   final isMatured = dep.status == DepositStatus.matured;
 
                   return InkWell(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(tokens.radiusCard),
                     onTap: () =>
                         DepositDialogHelper.showDetail(context, ref, dep),
                     child: Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(14),
+                        color: tokens.surface,
+                        borderRadius: BorderRadius.circular(tokens.radiusCard),
                         border: Border.all(
-                          color: isMatured
-                              ? AppColors.income.withOpacity(0.5)
-                              : AppColors.border,
+                          color:
+                              isMatured ? tokens.income : tokens.borderHairline,
                         ),
                       ),
                       child: Column(
@@ -1612,14 +1600,19 @@ class _DepositsTab extends ConsumerWidget {
                                   children: [
                                     Text(
                                       dep.name,
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16),
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 14,
+                                        color: tokens.textPrimary,
+                                      ),
                                     ),
+                                    const SizedBox(height: 2),
                                     Text(
                                       '${dep.bankName ?? "Bank"} • Bunga ${ratePercent.toStringAsFixed(2)}% (${dep.interestType.name})',
-                                      style: const TextStyle(
-                                          fontSize: 12, color: Colors.white54),
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: tokens.textMuted,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -1690,16 +1683,16 @@ class _DepositsTab extends ConsumerWidget {
                                     ),
                                   ),
                                   const PopupMenuDivider(),
-                                  const PopupMenuItem(
+                                  PopupMenuItem(
                                     value: 'delete',
                                     child: Row(
                                       children: [
                                         Icon(Icons.delete_outline_rounded,
-                                            size: 18, color: AppColors.expense),
-                                        SizedBox(width: 8),
+                                            size: 18, color: tokens.expense),
+                                        const SizedBox(width: 8),
                                         Text('Hapus Deposito',
                                             style: TextStyle(
-                                                color: AppColors.expense)),
+                                                color: tokens.expense)),
                                       ],
                                     ),
                                   ),
@@ -1712,31 +1705,16 @@ class _DepositsTab extends ConsumerWidget {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text('Mulai: ${formatDateIndo(dep.startDate)}',
-                                  style: const TextStyle(
-                                      fontSize: 12, color: Colors.white70)),
+                                  style: TextStyle(
+                                      fontSize: 11, color: tokens.textMuted)),
                               Text(
                                   'Jatuh Tempo: ${formatDateIndo(dep.maturityDate)}',
                                   style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
                                       color: isMatured
-                                          ? AppColors.income
-                                          : Colors.white)),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('Pokok: ${formatRupiah(dep.principal)}',
-                                  style: const TextStyle(
-                                      fontSize: 12, color: Colors.white70)),
-                              Text(
-                                  'Hasil: ${formatRupiah(calc.maturityAmount)}',
-                                  style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.primary)),
+                                          ? tokens.income
+                                          : tokens.textPrimary)),
                             ],
                           ),
                           const SizedBox(height: 4),
@@ -1744,9 +1722,44 @@ class _DepositsTab extends ConsumerWidget {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                  'Bunga Bersih: +${formatRupiah(calc.netInterest)}',
-                                  style: const TextStyle(
-                                      fontSize: 12, color: AppColors.income)),
+                                'Pokok: ${formatRupiah(dep.principal)}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: tokens.textPrimary,
+                                  fontFeatures: const [
+                                    FontFeature.tabularFigures()
+                                  ],
+                                ),
+                              ),
+                              Text(
+                                'Hasil: ${formatRupiah(calc.maturityAmount)}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: tokens.dataHue,
+                                  fontFeatures: const [
+                                    FontFeature.tabularFigures()
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Bunga Bersih: +${formatRupiah(calc.netInterest)}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: tokens.income,
+                                  fontFeatures: const [
+                                    FontFeature.tabularFigures()
+                                  ],
+                                ),
+                              ),
                               Text(
                                 isMatured
                                     ? 'Sudah Jatuh Tempo'
@@ -1754,8 +1767,8 @@ class _DepositsTab extends ConsumerWidget {
                                 style: TextStyle(
                                   fontSize: 11,
                                   color: isMatured
-                                      ? AppColors.income
-                                      : Colors.white54,
+                                      ? tokens.income
+                                      : tokens.textMuted,
                                 ),
                               ),
                             ],
@@ -1777,26 +1790,37 @@ class _DepositsTab extends ConsumerWidget {
 class _StatBox extends StatelessWidget {
   final String label;
   final String value;
-  final Color color;
+  final Color? color;
 
   const _StatBox({
     required this.label,
     required this.value,
-    required this.color,
+    this.color,
   });
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.tokens;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: const TextStyle(fontSize: 11, color: Colors.white54)),
-        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+            color: tokens.textMuted,
+          ),
+        ),
+        const SizedBox(height: 3),
         Text(
           value,
           style: TextStyle(
-              fontWeight: FontWeight.bold, fontSize: 16, color: color),
+            fontWeight: FontWeight.w700,
+            fontSize: 15,
+            color: color ?? tokens.textPrimary,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
         ),
       ],
     );

@@ -38,12 +38,15 @@ class ShellScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final selectedIndex = _calculateSelectedIndex(context);
 
+    final tokens = context.tokens;
+
     return Scaffold(
       body: child,
       bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
+          color: tokens.surface,
           border: Border(
-            top: BorderSide(color: AppColors.border, width: 1),
+            top: BorderSide(color: tokens.border, width: 1),
           ),
         ),
         child: BottomNavigationBar(
