@@ -62,16 +62,15 @@ class _MoneyFlowAppState extends ConsumerState<MoneyFlowApp>
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(themeMigrationProvider);
     final router = ref.watch(appRouterProvider);
     final sec = ref.watch(securityServiceProvider);
-    final themeMode = ref.watch(themeModeProvider);
 
     return MaterialApp.router(
       title: 'Money Flow',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: themeMode,
+      themeMode: ThemeMode.light,
       routerConfig: router,
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,

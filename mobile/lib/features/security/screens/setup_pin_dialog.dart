@@ -72,9 +72,11 @@ class _SetupPinDialogState extends ConsumerState<SetupPinDialog> {
     return AlertDialog(
       title: Row(
         children: [
-          const Icon(Icons.lock_outline_rounded, color: AppColors.primary),
+          const Icon(Icons.lock_outline_rounded, color: AppColors.brandTeal),
           const SizedBox(width: 8),
-          Text(_isConfirmStep ? 'Konfirmasi PIN' : 'Atur PIN Baru'),
+          Text(_isConfirmStep ? 'Konfirmasi PIN' : 'Atur PIN Baru',
+              style:
+                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         ],
       ),
       content: Column(
@@ -85,9 +87,10 @@ class _SetupPinDialogState extends ConsumerState<SetupPinDialog> {
             _isConfirmStep
                 ? 'Masukkan kembali PIN yang sama untuk konfirmasi:'
                 : 'Masukkan 4-8 digit angka sebagai PIN keamanan aplikasi:',
-            style: const TextStyle(fontSize: 13, color: AppColors.textMuted),
+            style:
+                const TextStyle(fontSize: 12, color: AppColors.textSecondary),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           TextField(
             controller: _isConfirmStep ? _confirmController : _pinController,
             autofocus: true,
@@ -98,15 +101,16 @@ class _SetupPinDialogState extends ConsumerState<SetupPinDialog> {
               labelText: _isConfirmStep ? 'Konfirmasi PIN' : 'PIN Baru',
               counterText: '',
               errorText: _error,
-              border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              border: OutlineInputBorder(
+                  borderRadius:
+                      BorderRadius.circular(context.tokens.radiusControl)),
             ),
             onSubmitted: (_) => _onNext(),
           ),
           const SizedBox(height: 8),
           const Text(
             'Catatan: PIN melindungi akses lokal aplikasi dan bukan merupakan enkripsi file database.',
-            style: TextStyle(fontSize: 10, color: AppColors.textMuted),
+            style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
           ),
         ],
       ),
@@ -115,7 +119,14 @@ class _SetupPinDialogState extends ConsumerState<SetupPinDialog> {
           onPressed: () => Navigator.pop(context, false),
           child: const Text('Batal'),
         ),
-        ElevatedButton(
+        FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.primaryDark,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(context.tokens.radiusControl),
+            ),
+          ),
           onPressed: _onNext,
           child: Text(_isConfirmStep ? 'Simpan' : 'Lanjut'),
         ),

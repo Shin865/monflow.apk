@@ -43,13 +43,16 @@ class _InvestmentsDepositsScreenState
         title: const Text('Investasi & Deposito'),
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: AppColors.primary,
+          indicatorColor: AppColors.brandTeal,
+          labelColor: AppColors.brandTeal,
+          unselectedLabelColor: AppColors.textSecondary,
+          indicatorWeight: 2.5,
           tabs: const [
             Tab(
-                icon: Icon(Icons.trending_up_rounded),
+                icon: Icon(Icons.trending_up_rounded, size: 20),
                 text: 'Portofolio Investasi'),
             Tab(
-                icon: Icon(Icons.account_balance_rounded),
+                icon: Icon(Icons.account_balance_rounded, size: 20),
                 text: 'Simpanan Deposito'),
           ],
         ),
@@ -63,11 +66,16 @@ class _InvestmentsDepositsScreenState
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: AppColors.primary,
-        icon: const Icon(Icons.add_rounded, color: Colors.white),
+        elevation: 0,
+        highlightElevation: 0,
+        icon: const Icon(Icons.add_rounded, color: Colors.white, size: 20),
         label: Text(
           _tabController.index == 0 ? 'Investasi Baru' : 'Deposito Baru',
           style:
-              const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
         ),
         onPressed: () {
           if (_tabController.index == 0) {
@@ -447,14 +455,16 @@ class DepositDialogHelper {
                           style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
-                              color: Colors.white70),
+                              color: AppColors.textSecondary),
                         ),
                         const SizedBox(height: 6),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             const Text('Bunga Bersih:',
-                                style: TextStyle(fontSize: 12)),
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.textPrimary)),
                             Text(
                               formatRupiah(previewCalc.netInterest),
                               style: const TextStyle(
@@ -468,12 +478,14 @@ class DepositDialogHelper {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             const Text('Total Diterima:',
-                                style: TextStyle(fontSize: 12)),
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.textPrimary)),
                             Text(
                               formatRupiah(previewCalc.maturityAmount),
                               style: const TextStyle(
                                   fontSize: 13,
-                                  color: AppColors.primary,
+                                  color: AppColors.brandTeal,
                                   fontWeight: FontWeight.bold),
                             ),
                           ],
@@ -796,14 +808,16 @@ class DepositDialogHelper {
                           style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
-                              color: Colors.white70),
+                              color: AppColors.textSecondary),
                         ),
                         const SizedBox(height: 6),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             const Text('Bunga Bersih:',
-                                style: TextStyle(fontSize: 12)),
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.textPrimary)),
                             Text(
                               formatRupiah(previewCalc.netInterest),
                               style: const TextStyle(
@@ -817,12 +831,14 @@ class DepositDialogHelper {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             const Text('Total Diterima:',
-                                style: TextStyle(fontSize: 12)),
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.textPrimary)),
                             Text(
                               formatRupiah(previewCalc.maturityAmount),
                               style: const TextStyle(
                                   fontSize: 13,
-                                  color: AppColors.primary,
+                                  color: AppColors.brandTeal,
                                   fontWeight: FontWeight.bold),
                             ),
                           ],
@@ -930,13 +946,15 @@ class DepositDialogHelper {
         title: Row(
           children: [
             const Icon(Icons.account_balance_rounded,
-                color: AppColors.primary, size: 24),
+                color: AppColors.brandTeal, size: 24),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 dep.name,
-                style:
-                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -951,7 +969,9 @@ class DepositDialogHelper {
                 Text(
                   'Bank: ${dep.bankName}',
                   style: const TextStyle(
-                      fontSize: 13, fontWeight: FontWeight.w600),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary),
                 ),
                 const SizedBox(height: 8),
               ],
@@ -959,8 +979,8 @@ class DepositDialogHelper {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: isMatured
-                      ? AppColors.income.withOpacity(0.2)
-                      : AppColors.primary.withOpacity(0.15),
+                      ? AppColors.income.withOpacity(0.15)
+                      : AppColors.brandTealWash,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
@@ -968,7 +988,7 @@ class DepositDialogHelper {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: isMatured ? AppColors.income : AppColors.primary,
+                    color: isMatured ? AppColors.income : AppColors.brandTeal,
                   ),
                 ),
               ),
@@ -989,15 +1009,17 @@ class DepositDialogHelper {
                   valueColor: AppColors.income),
               _detailRow(
                   'Total Saat Jatuh Tempo', formatRupiah(calc.maturityAmount),
-                  valueColor: AppColors.primary, isBold: true),
+                  valueColor: AppColors.brandTeal, isBold: true),
               if (dep.notes != null && dep.notes!.isNotEmpty) ...[
                 const SizedBox(height: 10),
                 const Text('Catatan:',
-                    style:
-                        TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                    style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary)),
                 Text(dep.notes!,
-                    style:
-                        const TextStyle(fontSize: 12, color: Colors.white70)),
+                    style: const TextStyle(
+                        fontSize: 12, color: AppColors.textSecondary)),
               ],
             ],
           ),
@@ -1158,13 +1180,14 @@ class DepositDialogHelper {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label,
-              style: const TextStyle(fontSize: 12, color: Colors.white70)),
+              style: const TextStyle(
+                  fontSize: 12, color: AppColors.textSecondary)),
           Text(
             value,
             style: TextStyle(
               fontSize: 12,
               fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
-              color: valueColor ?? Colors.white,
+              color: valueColor ?? AppColors.textPrimary,
             ),
           ),
         ],
@@ -1270,7 +1293,7 @@ class _InvestmentsTab extends ConsumerWidget {
                     child: Text(
                       'Belum ada portofolio investasi.\nTekan + untuk menambah instrumen.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white54),
+                      style: TextStyle(color: AppColors.textSecondary),
                     ),
                   ),
                 );
@@ -1297,7 +1320,8 @@ class _InvestmentsTab extends ConsumerWidget {
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius:
+                          BorderRadius.circular(context.tokens.radiusCard),
                       border: Border.all(color: AppColors.border),
                     ),
                     child: Column(
@@ -1313,12 +1337,14 @@ class _InvestmentsTab extends ConsumerWidget {
                                   inv.name,
                                   style: const TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 16),
+                                      fontSize: 16,
+                                      color: AppColors.textPrimary),
                                 ),
                                 Text(
                                   '${inv.type.name.toUpperCase()}${inv.platform != null ? " • ${inv.platform}" : ""}',
                                   style: const TextStyle(
-                                      fontSize: 12, color: Colors.white54),
+                                      fontSize: 12,
+                                      color: AppColors.textSecondary),
                                 ),
                               ],
                             ),
@@ -1351,12 +1377,13 @@ class _InvestmentsTab extends ConsumerWidget {
                           children: [
                             Text('Modal: ${formatRupiah(inv.initialCost)}',
                                 style: const TextStyle(
-                                    fontSize: 12, color: Colors.white70)),
+                                    fontSize: 12,
+                                    color: AppColors.textSecondary)),
                             Text('Nilai: ${formatRupiah(inv.currentValue)}',
                                 style: const TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.white)),
+                                    color: AppColors.textPrimary)),
                           ],
                         ),
                         const SizedBox(height: 4),
@@ -1366,7 +1393,8 @@ class _InvestmentsTab extends ConsumerWidget {
                             if (inv.units != null)
                               Text('Unit: ${inv.units}',
                                   style: const TextStyle(
-                                      fontSize: 12, color: Colors.white54))
+                                      fontSize: 12,
+                                      color: AppColors.textSecondary))
                             else
                               const SizedBox(),
                             Text(
@@ -1407,7 +1435,7 @@ class _InvestmentsTab extends ConsumerWidget {
           children: [
             const Text(
               'Aplikasi berjalan offline. Masukkan nilai pasar terkini dari portofolio Anda.',
-              style: TextStyle(fontSize: 12, color: Colors.white70),
+              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 12),
             TextField(
@@ -1546,7 +1574,7 @@ class _DepositsTab extends ConsumerWidget {
                     child: Text(
                       'Belum ada simpanan deposito.\nTekan + untuk menambah deposito.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white54),
+                      style: TextStyle(color: AppColors.textSecondary),
                     ),
                   ),
                 );
@@ -1582,7 +1610,8 @@ class _DepositsTab extends ConsumerWidget {
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
                         color: tokens.surface,
-                        borderRadius: BorderRadius.circular(tokens.radiusCard),
+                        borderRadius:
+                            BorderRadius.circular(context.tokens.radiusCard),
                         border: Border.all(
                           color:
                               isMatured ? tokens.income : tokens.borderHairline,

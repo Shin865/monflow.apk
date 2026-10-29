@@ -1,38 +1,45 @@
-# Flutter/Dart generated
+# ==============================================================================
+# Flutter & Android project-level .gitignore
+# ==============================================================================
+web/
 .dart_tool/
 .packages
 build/
 .flutter-plugins
 .flutter-plugins-dependencies
+.pub-cache/
+.pub/
+devtools_options.yaml
 *.g.dart
 
-# Android
-mobile/android/.gradle/
-mobile/android/app/debug/
-mobile/android/app/profile/
-mobile/android/app/release/
-**/android/key.properties
-**/android/local.properties
-**/*.keystore
-**/*.jks
+# Android build outputs & local secrets
+android/.gradle/
+android/local.properties
+android/GeneratedPluginRegistrant.java
+android/key.properties
+android/monflow.jks
+android/captures/
+android/app/debug/
+android/app/profile/
+android/app/release/
+*.apk
+*.aab
 
-# IDE
+# Keystore & security
+*.keystore
+*.jks
+*.key
+
+# IDE & OS
 .idea/
 *.iml
 .vscode/
-
-# OS
 .DS_Store
 Thumbs.db
+ehthumbs.db
+desktop.ini
 
-# Pub
-.pub-cache/
-.pub/
-
-# Test
+# Logs & temp
+*.log
+*.tmp
 coverage/
-
-# Docs & Skills
-docs/
-SKILL.md
-skill.md

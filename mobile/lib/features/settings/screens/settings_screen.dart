@@ -6,7 +6,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:money_flow/core/formatting/formatters.dart';
 import 'package:money_flow/core/theme/app_theme.dart';
-import 'package:money_flow/core/theme/theme_provider.dart';
 import 'package:money_flow/data/services/backup_restore_service.dart';
 import 'package:money_flow/data/services/encrypted_backup_service.dart';
 import 'package:money_flow/data/services/security_service.dart';
@@ -92,69 +91,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         _loadSecuritySettings();
       }
     }
-  }
-
-  void _showThemeDialog(
-      BuildContext context, WidgetRef ref, ThemeMode current) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.palette_rounded, color: Colors.amber, size: 24),
-            SizedBox(width: 10),
-            Text('Pilih Tema Aplikasi'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            RadioListTile<ThemeMode>(
-              title: const Text('Tema Gelap (Dark Mode)'),
-              subtitle: const Text('Nuansa gelap elegan & hemat baterai'),
-              value: ThemeMode.dark,
-              groupValue: current,
-              onChanged: (val) {
-                if (val != null) {
-                  ref.read(themeModeProvider.notifier).setThemeMode(val);
-                  Navigator.pop(ctx);
-                }
-              },
-            ),
-            RadioListTile<ThemeMode>(
-              title: const Text('Tema Terang (Light Mode)'),
-              subtitle: const Text('Tampilan bersih & kontras tinggi'),
-              value: ThemeMode.light,
-              groupValue: current,
-              onChanged: (val) {
-                if (val != null) {
-                  ref.read(themeModeProvider.notifier).setThemeMode(val);
-                  Navigator.pop(ctx);
-                }
-              },
-            ),
-            RadioListTile<ThemeMode>(
-              title: const Text('Mengikuti Sistem Perangkat'),
-              subtitle: const Text('Menyesuaikan tema otomatis dari sistem OS'),
-              value: ThemeMode.system,
-              groupValue: current,
-              onChanged: (val) {
-                if (val != null) {
-                  ref.read(themeModeProvider.notifier).setThemeMode(val);
-                  Navigator.pop(ctx);
-                }
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Batal'),
-          ),
-        ],
-      ),
-    );
   }
 
   // ============================================================
@@ -574,7 +510,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         builder: (context, setDlgState) => AlertDialog(
           title: const Row(
             children: [
-              Icon(Icons.enhanced_encryption_rounded, color: Colors.amber),
+              Icon(Icons.enhanced_encryption_rounded, color: AppColors.warning),
               SizedBox(width: 8),
               Text('Cadangan Terenkripsi'),
             ],
@@ -704,27 +640,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
-                  side: const BorderSide(color: Colors.amber, width: 1.5),
+                  side: BorderSide(
+                      color: AppColors.warning.withOpacity(0.5), width: 1.5),
                 ),
-                tileColor: Colors.amber.withOpacity(0.08),
+                tileColor: AppColors.warningBg,
                 leading: const Icon(Icons.file_open_rounded,
-                    color: Colors.amber, size: 28),
+                    color: AppColors.warning, size: 28),
                 title: const Text('Pilih File dari Perangkat...',
                     style:
                         TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                 subtitle: const Text('Cari file .json / .enc.json di perangkat',
                     style: TextStyle(fontSize: 12)),
-                trailing: const Icon(Icons.chevron_right, color: Colors.amber),
+                trailing:
+                    const Icon(Icons.chevron_right, color: AppColors.warning),
                 onTap: () => Navigator.pop(ctx, '__PICK_FILE__'),
               ),
               const SizedBox(height: 12),
               const Text(
-                'CADANGAN TERENKRIPSI LOKAL',
+                'Cadangan terenkripsi lokal',
                 style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.textMuted,
-                    letterSpacing: 1),
+                    letterSpacing: 0),
               ),
               const SizedBox(height: 8),
               if (files.isEmpty)
@@ -747,7 +685,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       final name = f.path.split(Platform.pathSeparator).last;
                       return ListTile(
                         leading: const Icon(Icons.enhanced_encryption_rounded,
-                            color: Colors.amber),
+                            color: AppColors.warning),
                         title: Text(name,
                             style: const TextStyle(
                                 fontSize: 13, fontWeight: FontWeight.w600)),
@@ -894,7 +832,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
-    final themeMode = ref.watch(themeModeProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -956,47 +893,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 20),
-
-          // Tampilan & Tema Section
-          Text(
-            'TAMPILAN & TEMA',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: tokens.textMuted,
-              letterSpacing: 0.5,
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          _SettingsTile(
-            icon: themeMode == ThemeMode.light
-                ? Icons.light_mode_rounded
-                : (themeMode == ThemeMode.dark
-                    ? Icons.dark_mode_rounded
-                    : Icons.brightness_auto_rounded),
-            iconColor: Colors.amber,
-            title: 'Tema Tampilan',
-            subtitle: themeMode == ThemeMode.light
-                ? 'Tema Terang (Light Mode)'
-                : (themeMode == ThemeMode.dark
-                    ? 'Tema Gelap (Dark Mode)'
-                    : 'Mengikuti Sistem Perangkat'),
-            trailing: const Icon(Icons.chevron_right_rounded,
-                color: AppColors.textMuted),
-            onTap: () => _showThemeDialog(context, ref, themeMode),
-          ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
           // Master Data Section
-          const Text(
-            'MASTER DATA & KEUANGAN',
+          Text(
+            'Master Data & Keuangan',
             style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textMuted,
-              letterSpacing: 1.5,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: tokens.textSecondary,
+              letterSpacing: 0,
             ),
           ),
           const SizedBox(height: 12),
@@ -1036,7 +942,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
           _SettingsTile(
             icon: Icons.analytics_rounded,
-            iconColor: Colors.cyan,
+            iconColor: AppColors.brandTeal,
             title: 'Laporan Keuangan',
             subtitle: 'Grafik arus kas, kategori, dan ekspor CSV/PDF',
             trailing: const Icon(Icons.chevron_right_rounded,
@@ -1046,13 +952,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const SizedBox(height: 24),
 
           // Keamanan & Privasi Section
-          const Text(
-            'KEAMANAN & PRIVASI',
+          Text(
+            'Keamanan & Privasi',
             style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textMuted,
-              letterSpacing: 1.5,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: tokens.textSecondary,
+              letterSpacing: 0,
             ),
           ),
           const SizedBox(height: 12),
@@ -1073,7 +979,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const SizedBox(height: 8),
             _SettingsTile(
               icon: Icons.fingerprint_rounded,
-              iconColor: Colors.tealAccent,
+              iconColor: AppColors.brandTeal,
               title: 'Buka Kunci dengan Biometrik',
               subtitle: _canCheckBiometrics
                   ? 'Gunakan sidik jari atau wajah jika tersedia'
@@ -1093,7 +999,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const SizedBox(height: 8),
             _SettingsTile(
               icon: Icons.screen_lock_portrait_rounded,
-              iconColor: Colors.deepPurpleAccent,
+              iconColor: AppColors.transfer,
               title: 'Kunci Otomatis Saat Keluar',
               subtitle: 'Kunci layar ketika aplikasi beralih ke latar belakang',
               trailing: Switch(
@@ -1110,20 +1016,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const SizedBox(height: 24),
 
           // Backup & Restore Section
-          const Text(
-            'DATA & CADANGAN',
+          Text(
+            'Data & Cadangan',
             style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textMuted,
-              letterSpacing: 1.5,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: tokens.textSecondary,
+              letterSpacing: 0,
             ),
           ),
           const SizedBox(height: 12),
 
           _SettingsTile(
             icon: Icons.enhanced_encryption_rounded,
-            iconColor: Colors.amber,
+            iconColor: AppColors.warning,
             title: 'Cadangan Terenkripsi (AES-GCM)',
             subtitle:
                 'Enkripsi data dengan kata sandi (Aman untuk media eksternal)',
@@ -1135,7 +1041,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
           _SettingsTile(
             icon: Icons.lock_open_rounded,
-            iconColor: Colors.amberAccent,
+            iconColor: AppColors.warning,
             title: 'Pulihkan Cadangan Terenkripsi',
             subtitle:
                 'Buka dan pulihkan data dari file .enc.json dengan kata sandi',
@@ -1184,13 +1090,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const SizedBox(height: 24),
 
           // About Section
-          const Text(
-            'TENTANG',
+          Text(
+            'Tentang',
             style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textMuted,
-              letterSpacing: 1.5,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: tokens.textSecondary,
+              letterSpacing: 0,
             ),
           ),
           const SizedBox(height: 12),

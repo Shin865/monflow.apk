@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:money_flow/core/database/database.dart';
 import 'package:money_flow/core/formatting/formatters.dart';
 import 'package:money_flow/core/theme/app_theme.dart';
+import 'package:money_flow/core/widgets/common_widgets.dart';
 import 'package:money_flow/data/repositories/account_repository.dart';
 import 'package:money_flow/data/repositories/category_repository.dart';
 import 'package:money_flow/data/repositories/purchase_plan_repository.dart';
@@ -30,8 +31,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final tokens = context.tokens;
     final summaryStream =
         ref.watch(purchasePlanRepositoryProvider).watchSummary();
     final plansStream = ref.watch(purchasePlanRepositoryProvider).watchPlans();
@@ -41,11 +41,11 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
         title: const Text('Rencana Pembelian'),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Ringkasan Rencana Pembelian
+            // 1. Ringkasan Rencana Pembelian (Clean Finsave Card)
             StreamBuilder<PurchasePlanSummary>(
               stream: summaryStream,
               builder: (context, snapshot) {
@@ -58,53 +58,44 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                     );
 
                 return Container(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF831843), Color(0xFFBE185D)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF831843).withOpacity(0.35),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
+                    color: tokens.surface,
+                    borderRadius: BorderRadius.circular(tokens.radiusCard),
+                    border: Border.all(color: tokens.border, width: 1),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Row(
+                      Row(
                         children: [
-                          Icon(Icons.shopping_bag_rounded,
-                              color: Colors.white, size: 20),
-                          SizedBox(width: 8),
+                          Icon(Icons.shopping_bag_outlined,
+                              color: tokens.brand, size: 18),
+                          const SizedBox(width: 8),
                           Text(
                             'Total Kebutuhan Belanja Aktif',
                             style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 13,
+                              color: tokens.textSecondary,
+                              fontSize: 12,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       Text(
                         formatRupiah(summary.totalActiveTarget),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 26,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.5,
+                        style: TextStyle(
+                          color: tokens.textPrimary,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.4,
+                          fontFeatures: const [FontFeature.tabularFigures()],
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      const Divider(color: Colors.white24, height: 1),
                       const SizedBox(height: 12),
+                      Container(height: 1, color: tokens.rule),
+                      const SizedBox(height: 10),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -117,7 +108,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                             value: '${summary.achievedCount} Barang',
                           ),
                           _buildHeaderStat(
-                            label: 'Total Terealisasi',
+                            label: 'Total Realisasi',
                             value: formatRupiah(summary.totalHistoryTarget),
                           ),
                         ],
@@ -127,7 +118,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                 );
               },
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 14),
 
             // 2. Filter Bar
             SingleChildScrollView(
@@ -142,7 +133,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
 
             // 3. Daftar Rencana Pembelian
             StreamBuilder<List<PurchasePlan>>(
@@ -159,28 +150,17 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                 }
 
                 if (list.isEmpty) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 40),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.shopping_bag_outlined,
-                              size: 56,
-                              color: isDark ? Colors.white30 : Colors.black26),
-                          const SizedBox(height: 12),
-                          Text(
-                            _statusFilter == 0
-                                ? 'Belum ada rencana pembelian.\nTekan + untuk membuat rencana baru.'
-                                : 'Tidak ada rencana pada kategori filter ini.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: isDark ? Colors.white54 : Colors.black54,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                  return MfEmptyState(
+                    icon: Icons.shopping_bag_outlined,
+                    title: _statusFilter == 0
+                        ? 'Belum ada rencana pembelian'
+                        : 'Tidak ada rencana pada kategori filter ini',
+                    subtitle:
+                        'Tekan tombol + untuk membuat rencana belanja baru',
+                    actionLabel: _statusFilter == 0 ? 'Buat Rencana' : null,
+                    onAction: _statusFilter == 0
+                        ? () => _showAddPlanDialog(context, ref)
+                        : null,
                   );
                 }
 
@@ -188,10 +168,10 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: list.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
                   itemBuilder: (context, index) {
                     final plan = list[index];
-                    return _buildPlanCard(context, ref, plan, isDark);
+                    return _buildPlanCard(context, ref, plan);
                   },
                 );
               },
@@ -247,28 +227,19 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     BuildContext context,
     WidgetRef ref,
     PurchasePlan plan,
-    bool isDark,
   ) {
+    final tokens = context.tokens;
     final isAchieved = plan.status == PlanStatus.achieved;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surface : Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        color: tokens.surface,
+        borderRadius: BorderRadius.circular(tokens.radiusCard),
         border: Border.all(
-          color: isAchieved
-              ? AppColors.income.withOpacity(0.5)
-              : (isDark ? AppColors.border : Colors.grey.shade300),
-          width: isAchieved ? 1.5 : 1,
+          color: isAchieved ? tokens.income : tokens.border,
+          width: 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -284,12 +255,9 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                     Text(
                       plan.name,
                       style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 17,
-                        color: isDark ? Colors.white : Colors.black87,
-                        decoration: isAchieved
-                            ? TextDecoration.none
-                            : TextDecoration.none,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                        color: tokens.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -300,28 +268,29 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                         if (plan.category != null && plan.category!.isNotEmpty)
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 2),
+                                horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
-                              color: isDark
-                                  ? Colors.white10
-                                  : Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(6),
+                              color: tokens.surfaceRaised,
+                              borderRadius:
+                                  BorderRadius.circular(tokens.radiusChip),
+                              border: Border.all(color: tokens.borderHairline),
                             ),
                             child: Text(
                               plan.category!,
                               style: TextStyle(
                                 fontSize: 11,
-                                color: isDark ? Colors.white70 : Colors.black87,
+                                color: tokens.textSecondary,
                               ),
                             ),
                           ),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
+                              horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
                             color:
-                                _priorityColor(plan.priority).withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(6),
+                                _priorityColor(plan.priority).withOpacity(0.12),
+                            borderRadius:
+                                BorderRadius.circular(tokens.radiusChip),
                           ),
                           child: Text(
                             'Prioritas ${_priorityName(plan.priority)}',
@@ -339,7 +308,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
               ),
               PopupMenuButton<String>(
                 icon: Icon(Icons.more_vert_rounded,
-                    color: isDark ? Colors.white70 : Colors.black54),
+                    color: tokens.textSecondary, size: 20),
                 onSelected: (val) {
                   if (val == 'history') {
                     _showHistoryDialog(context, ref, plan);
@@ -374,25 +343,25 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                       ),
                     ),
                   if (isAchieved)
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'unrealize',
                       child: Row(
                         children: [
                           Icon(Icons.undo_rounded,
-                              size: 18, color: AppColors.warning),
-                          SizedBox(width: 8),
-                          Text('Batalkan Realisasi'),
+                              size: 18, color: tokens.warning),
+                          const SizedBox(width: 8),
+                          const Text('Batalkan Realisasi'),
                         ],
                       ),
                     ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'delete',
                     child: Row(
                       children: [
                         Icon(Icons.delete_outline_rounded,
-                            size: 18, color: AppColors.expense),
-                        SizedBox(width: 8),
-                        Text('Hapus Rencana'),
+                            size: 18, color: tokens.expense),
+                        const SizedBox(width: 8),
+                        const Text('Hapus Rencana'),
                       ],
                     ),
                   ),
@@ -400,7 +369,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           // Harga / Nominal Rencana
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -411,17 +380,18 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                   Text(
                     'Harga Rencana',
                     style: TextStyle(
-                      fontSize: 12,
-                      color: isDark ? Colors.white54 : Colors.black54,
+                      fontSize: 11,
+                      color: tokens.textSecondary,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     formatRupiah(plan.targetAmount),
                     style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: isDark ? Colors.white : AppColors.primary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: tokens.textPrimary,
+                      fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                   ),
                 ],
@@ -433,17 +403,18 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                     Text(
                       'Target Realisasi',
                       style: TextStyle(
-                        fontSize: 12,
-                        color: isDark ? Colors.white54 : Colors.black54,
+                        fontSize: 11,
+                        color: tokens.textSecondary,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       formatDate(plan.targetDate!),
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: isDark ? Colors.white70 : Colors.black87,
+                        color: tokens.textPrimary,
+                        fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
                   ],
@@ -451,36 +422,27 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
             ],
           ),
           if (plan.description != null && plan.description!.isNotEmpty) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Text(
               plan.description!,
               style: TextStyle(
                 fontSize: 12,
-                color: isDark ? Colors.white60 : Colors.black54,
+                color: tokens.textSecondary,
               ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
           ],
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           // Tombol status & Realisasi
           if (!isAchieved)
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.income,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                ),
-                icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
-                label: const Text(
-                  'Realisasikan & Potong Saldo',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
+              height: 42,
+              child: MfButton.primary(
+                label: 'Realisasikan & Potong Saldo',
+                icon: Icons.check_circle_outline_rounded,
+                height: 42,
                 onPressed: () => _showCompletePlanDialog(context, ref, plan),
               ),
             )
@@ -488,22 +450,22 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: AppColors.incomeBg.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.income.withOpacity(0.5)),
+                color: tokens.incomeBg,
+                borderRadius: BorderRadius.circular(tokens.radiusControl),
+                border: Border.all(color: tokens.income.withOpacity(0.3)),
               ),
-              child: const Row(
+              child: Row(
                 children: [
                   Icon(Icons.check_circle_rounded,
-                      color: AppColors.income, size: 18),
-                  SizedBox(width: 8),
+                      color: tokens.income, size: 16),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Telah Direalisasikan (Saldo telah dipotong)',
                       style: TextStyle(
-                        color: AppColors.income,
+                        color: tokens.incomeInk,
                         fontSize: 12,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -518,13 +480,13 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
   Color _priorityColor(PlanPriority priority) {
     switch (priority) {
       case PlanPriority.low:
-        return Colors.blue;
+        return AppColors.transfer; // neutral slate
       case PlanPriority.medium:
-        return Colors.amber.shade700;
+        return AppColors.warning; // amber warning
       case PlanPriority.high:
-        return Colors.orange.shade700;
+        return AppColors.orange;
       case PlanPriority.urgent:
-        return Colors.red;
+        return AppColors.expense; // red
     }
   }
 

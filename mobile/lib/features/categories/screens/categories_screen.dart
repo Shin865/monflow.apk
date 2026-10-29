@@ -35,12 +35,17 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
         title: const Text('Kelola Kategori'),
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: AppColors.primary,
-          labelColor: AppColors.primary,
-          unselectedLabelColor: AppColors.textMuted,
+          indicatorColor: AppColors.brandTeal,
+          labelColor: AppColors.brandTeal,
+          unselectedLabelColor: AppColors.textSecondary,
+          indicatorWeight: 2.5,
           tabs: const [
-            Tab(text: 'Pengeluaran', icon: Icon(Icons.arrow_upward_rounded)),
-            Tab(text: 'Pemasukan', icon: Icon(Icons.arrow_downward_rounded)),
+            Tab(
+                text: 'Pengeluaran',
+                icon: Icon(Icons.arrow_upward_rounded, size: 18)),
+            Tab(
+                text: 'Pemasukan',
+                icon: Icon(Icons.arrow_downward_rounded, size: 18)),
           ],
         ),
       ),
@@ -58,10 +63,13 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen>
               : CategoryType.income;
           _showCreateOrEditDialog(context, type: currentType);
         },
-        backgroundColor: AppColors.primary,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Tambah Kategori',
-            style: TextStyle(color: Colors.white)),
+        backgroundColor: AppColors.primaryDark,
+        elevation: 2,
+        icon: const Icon(Icons.add, color: Colors.white, size: 20),
+        label: const Text(
+          'Tambah Kategori',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
       ),
     );
   }
@@ -108,14 +116,14 @@ class _CategoryListView extends ConsumerWidget {
                   type == CategoryType.income
                       ? Icons.savings_outlined
                       : Icons.shopping_bag_outlined,
-                  size: 56,
-                  color: AppColors.textMuted,
+                  size: 48,
+                  color: AppColors.textSecondary,
                 ),
                 const SizedBox(height: 12),
                 Text(
                   'Belum ada kategori ${type == CategoryType.income ? "pemasukan" : "pengeluaran"}',
-                  style:
-                      const TextStyle(color: AppColors.textMuted, fontSize: 15),
+                  style: const TextStyle(
+                      color: AppColors.textSecondary, fontSize: 14),
                 ),
               ],
             ),
@@ -123,7 +131,7 @@ class _CategoryListView extends ConsumerWidget {
         }
 
         return ListView.separated(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
           itemCount: categories.length,
           separatorBuilder: (_, __) => const SizedBox(height: 8),
           itemBuilder: (context, index) {
@@ -143,6 +151,7 @@ class _CategoryItemTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final tokens = context.tokens;
     final repo = ref.watch(categoryRepositoryProvider);
 
     final color = category.color != null
@@ -152,34 +161,36 @@ class _CategoryItemTile extends ConsumerWidget {
             : AppColors.expense);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(tokens.radiusCard),
         border: Border.all(
           color: category.isActive
               ? AppColors.border
-              : AppColors.border.withOpacity(0.4),
+              : AppColors.border.withOpacity(0.5),
         ),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: color.withOpacity(category.isActive ? 0.15 : 0.05),
-              borderRadius: BorderRadius.circular(12),
+              color: color.withOpacity(category.isActive ? 0.12 : 0.05),
+              borderRadius: BorderRadius.circular(tokens.radiusControl),
             ),
             child: Text(
               category.icon ??
                   (category.type == CategoryType.income ? '💰' : '🏷️'),
               style: TextStyle(
-                fontSize: 22,
-                color: category.isActive ? Colors.black : Colors.black38,
+                fontSize: 20,
+                color: category.isActive
+                    ? AppColors.textPrimary
+                    : AppColors.textSecondary,
               ),
             ),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -190,11 +201,11 @@ class _CategoryItemTile extends ConsumerWidget {
                       child: Text(
                         category.name,
                         style: TextStyle(
-                          fontSize: 15,
+                          fontSize: 14,
                           fontWeight: FontWeight.w600,
                           color: category.isActive
                               ? AppColors.textPrimary
-                              : AppColors.textMuted,
+                              : AppColors.textSecondary,
                           decoration: category.isActive
                               ? null
                               : TextDecoration.lineThrough,
@@ -209,15 +220,15 @@ class _CategoryItemTile extends ConsumerWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(6),
+                          color: AppColors.brandTealWash,
+                          borderRadius: BorderRadius.circular(4),
                         ),
                         child: const Text(
                           'Bawaan',
                           style: TextStyle(
                               fontSize: 10,
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.bold),
+                              color: AppColors.brandTeal,
+                              fontWeight: FontWeight.w600),
                         ),
                       ),
                     ],
@@ -227,10 +238,10 @@ class _CategoryItemTile extends ConsumerWidget {
                 Text(
                   category.isActive ? 'Aktif' : 'Nonaktif',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 11,
                     color: category.isActive
                         ? AppColors.income
-                        : AppColors.textMuted,
+                        : AppColors.textSecondary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -239,8 +250,10 @@ class _CategoryItemTile extends ConsumerWidget {
           ),
           IconButton(
             icon: const Icon(Icons.edit_outlined,
-                size: 20, color: AppColors.textMuted),
+                size: 18, color: AppColors.textSecondary),
             tooltip: 'Ubah Kategori',
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
             onPressed: () {
               showModalBottomSheet(
                 context: context,
@@ -255,15 +268,17 @@ class _CategoryItemTile extends ConsumerWidget {
           ),
           Switch(
             value: category.isActive,
-            activeColor: AppColors.primary,
+            activeColor: AppColors.brandTeal,
             onChanged: (val) async {
               await repo.toggleCategoryActive(category.id, val);
             },
           ),
           IconButton(
             icon: const Icon(Icons.delete_outline_rounded,
-                size: 20, color: AppColors.expense),
+                size: 18, color: AppColors.expense),
             tooltip: 'Hapus Kategori',
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
             onPressed: () => _confirmDelete(context, ref, category),
           ),
         ],
@@ -304,7 +319,7 @@ class _CategoryItemTile extends ConsumerWidget {
                     context: context,
                     builder: (alertContext) => AlertDialog(
                       icon: const Icon(Icons.warning_amber_rounded,
-                          color: Colors.amber, size: 36),
+                          color: AppColors.warning, size: 36),
                       title: const Text('Tidak Dapat Dihapus'),
                       content: Text(
                         'Kategori "${category.name}" sudah digunakan dalam catatan transaksi sebelumnya.\n\nUntuk menjaga keutuhan riwayat transaksi, silakan nonaktifkan (toggle off) kategori ini agar tidak muncul lagi pada pencatatan baru.',
@@ -410,6 +425,7 @@ class _CategoryFormSheetState extends ConsumerState<_CategoryFormSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.tokens;
     final isEdit = widget.existing != null;
     final icons =
         widget.type == CategoryType.income ? _incomeIcons : _expenseIcons;
@@ -499,7 +515,10 @@ class _CategoryFormSheetState extends ConsumerState<_CategoryFormSheet> {
               ),
               const SizedBox(height: 16),
               const Text('Pilih Warna',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                  style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      color: AppColors.textPrimary)),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -517,17 +536,11 @@ class _CategoryFormSheetState extends ConsumerState<_CategoryFormSheet> {
                         color: color,
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: isSelected ? Colors.white : Colors.transparent,
-                          width: 2,
+                          color: isSelected
+                              ? AppColors.textPrimary
+                              : Colors.transparent,
+                          width: 2.5,
                         ),
-                        boxShadow: isSelected
-                            ? [
-                                BoxShadow(
-                                    color: color.withOpacity(0.5),
-                                    blurRadius: 6,
-                                    spreadRadius: 1)
-                              ]
-                            : null,
                       ),
                       child: isSelected
                           ? const Icon(Icons.check,
@@ -537,15 +550,17 @@ class _CategoryFormSheetState extends ConsumerState<_CategoryFormSheet> {
                   );
                 }).toList(),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    backgroundColor: AppColors.primaryDark,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size.fromHeight(48),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                      borderRadius: BorderRadius.circular(tokens.radiusControl),
+                    ),
                   ),
                   onPressed: () async {
                     if (!_formKey.currentState!.validate()) return;
@@ -576,7 +591,11 @@ class _CategoryFormSheetState extends ConsumerState<_CategoryFormSheet> {
                       );
                     }
                   },
-                  child: Text(isEdit ? 'Simpan Perubahan' : 'Tambah Kategori'),
+                  child: Text(
+                    isEdit ? 'Simpan Perubahan' : 'Tambah Kategori',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 15),
+                  ),
                 ),
               ),
             ],

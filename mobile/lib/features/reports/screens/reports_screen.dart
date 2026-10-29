@@ -149,8 +149,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             const SizedBox(height: 12),
             ListTile(
               leading: const CircleAvatar(
-                backgroundColor: Color(0xFFE8F5E9),
-                child: Icon(Icons.table_chart_rounded, color: Colors.green),
+                backgroundColor: AppColors.incomeBg,
+                child: Icon(Icons.table_chart_rounded, color: AppColors.income),
               ),
               title: const Text('Ekspor Transaksi (CSV)'),
               subtitle: const Text(
@@ -179,8 +179,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             ),
             ListTile(
               leading: const CircleAvatar(
-                backgroundColor: Color(0xFFE0F2F1),
-                child: Icon(Icons.table_view_rounded, color: Colors.teal),
+                backgroundColor: AppColors.brandTealWash,
+                child:
+                    Icon(Icons.table_view_rounded, color: AppColors.brandTeal),
               ),
               title: const Text('Ekspor Laporan Keuangan (Excel .xlsx)'),
               subtitle: const Text(
@@ -209,9 +210,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             ),
             ListTile(
               leading: const CircleAvatar(
-                backgroundColor: Color(0xFFEDE7F6),
+                backgroundColor: AppColors.transferBg,
                 child: Icon(Icons.account_balance_wallet_rounded,
-                    color: Colors.deepPurple),
+                    color: AppColors.transfer),
               ),
               title: const Text('Ekspor Daftar Akun (CSV)'),
               subtitle: const Text('Daftar saldo dan posisi akun aktif'),
@@ -235,8 +236,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             ),
             ListTile(
               leading: const CircleAvatar(
-                backgroundColor: Color(0xFFFFEBEE),
-                child: Icon(Icons.picture_as_pdf_rounded, color: Colors.red),
+                backgroundColor: AppColors.expenseBg,
+                child: Icon(Icons.picture_as_pdf_rounded,
+                    color: AppColors.expense),
               ),
               title: const Text('Ekspor Laporan Keuangan (PDF)'),
               subtitle: const Text(
@@ -337,16 +339,26 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             _buildPeriodChip('Tahun Ini', ReportPeriod.thisYear),
             const SizedBox(width: 8),
             ActionChip(
-              avatar: const Icon(Icons.date_range, size: 16),
+              avatar: const Icon(Icons.date_range,
+                  size: 16, color: AppColors.textPrimary),
               label: Text(
                 _selectedPeriod == ReportPeriod.custom &&
                         _customDateRange != null
                     ? '${_customDateRange!.start.day}/${_customDateRange!.start.month} - ${_customDateRange!.end.day}/${_customDateRange!.end.month}'
                     : 'Kustom...',
+                style: const TextStyle(fontSize: 12),
               ),
               backgroundColor: _selectedPeriod == ReportPeriod.custom
-                  ? AppColors.primary.withOpacity(0.15)
-                  : null,
+                  ? AppColors.brandTealWash
+                  : AppColors.surface,
+              side: BorderSide(
+                color: _selectedPeriod == ReportPeriod.custom
+                    ? AppColors.brandTeal
+                    : AppColors.border,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(context.tokens.radiusChip),
+              ),
               onPressed: _pickCustomDateRange,
             ),
           ],
@@ -360,6 +372,19 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     return ChoiceChip(
       label: Text(label),
       selected: isSelected,
+      selectedColor: AppColors.brandTealWash,
+      backgroundColor: AppColors.surface,
+      side: BorderSide(
+        color: isSelected ? AppColors.brandTeal : AppColors.border,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(context.tokens.radiusChip),
+      ),
+      labelStyle: TextStyle(
+        color: isSelected ? AppColors.brandTeal : AppColors.textSecondary,
+        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+        fontSize: 12,
+      ),
       onSelected: (selected) {
         if (selected) {
           setState(() => _selectedPeriod = period);
@@ -400,11 +425,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   Widget _buildExecutiveSummary(FinancialComprehensiveReport r) {
     final isPositive = r.cashFlow.netCashFlow >= 0;
 
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 2,
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(context.tokens.radiusCard),
+        border: Border.all(color: AppColors.border),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -413,29 +441,32 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               children: [
                 const Text(
                   'Arus Kas Periode Ini',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary),
                 ),
                 Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: isPositive
                         ? AppColors.income.withOpacity(0.12)
                         : AppColors.expense.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
                     isPositive ? 'Surplus' : 'Defisit',
                     style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
                       color: isPositive ? AppColors.income : AppColors.expense,
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
@@ -446,7 +477,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     Icons.arrow_downward_rounded,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 Expanded(
                   child: _buildSummaryBox(
                     'Pengeluaran',
@@ -457,26 +488,28 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: Theme.of(context)
-                    .colorScheme
-                    .surfaceContainerHighest
-                    .withOpacity(0.4),
-                borderRadius: BorderRadius.circular(10),
+                color: AppColors.surfaceVariant,
+                borderRadius:
+                    BorderRadius.circular(context.tokens.radiusControl),
+                border: Border.all(color: AppColors.border),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text('Net Cash Flow:',
-                      style: TextStyle(fontWeight: FontWeight.w500)),
+                      style: TextStyle(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 13,
+                          color: AppColors.textPrimary)),
                   Text(
                     formatRupiah(r.cashFlow.netCashFlow),
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                      fontSize: 15,
                       color: isPositive ? AppColors.income : AppColors.expense,
                     ),
                   ),
@@ -492,31 +525,31 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   Widget _buildSummaryBox(
       String label, String value, Color color, IconData icon) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.2)),
+        color: color.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(context.tokens.radiusControl),
+        border: Border.all(color: color.withOpacity(0.15)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, size: 16, color: color),
+              Icon(icon, size: 14, color: color),
               const SizedBox(width: 4),
               Text(
                 label,
                 style: TextStyle(
-                    fontSize: 12, color: color, fontWeight: FontWeight.w600),
+                    fontSize: 11, color: color, fontWeight: FontWeight.w600),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             value,
             style: TextStyle(
-              fontSize: 15,
+              fontSize: 14,
               fontWeight: FontWeight.bold,
               color: color,
             ),
@@ -531,29 +564,38 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   Widget _buildCashFlowChartCard(FinancialComprehensiveReport r) {
     final trends = r.cashFlow.monthlyTrends;
 
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(context.tokens.radiusCard),
+        border: Border.all(color: AppColors.border),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
               'Tren Pemasukan vs Pengeluaran',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             const Text(
               'Perbandingan pendapatan dan belanja per bulan',
-              style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+              style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             if (trends.isEmpty)
               const Center(
                 child: Padding(
                   padding: EdgeInsets.symmetric(vertical: 24),
-                  child:
-                      Text('Belum ada data transaksi pada rentang waktu ini.'),
+                  child: Text(
+                      'Belum ada data transaksi pada rentang waktu ini.',
+                      style: TextStyle(
+                          color: AppColors.textSecondary, fontSize: 13)),
                 ),
               )
             else
@@ -571,13 +613,13 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                             toY: (item.income / 1000000).toDouble(),
                             color: AppColors.income,
                             width: 10,
-                            borderRadius: BorderRadius.circular(4),
+                            borderRadius: BorderRadius.circular(3),
                           ),
                           BarChartRodData(
                             toY: (item.expense / 1000000).toDouble(),
                             color: AppColors.expense,
                             width: 10,
-                            borderRadius: BorderRadius.circular(4),
+                            borderRadius: BorderRadius.circular(3),
                           ),
                         ],
                       );
@@ -602,7 +644,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                                 padding: const EdgeInsets.only(top: 6),
                                 child: Text(
                                   trends[idx].monthLabel.split(' ').first,
-                                  style: const TextStyle(fontSize: 10),
+                                  style: const TextStyle(
+                                      fontSize: 10,
+                                      color: AppColors.textSecondary),
                                 ),
                               );
                             }
@@ -634,39 +678,43 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   Widget _buildCategoryPieCard(FinancialComprehensiveReport r) {
     final categories = r.expenseCategories;
 
+    // Achromatic-ledger palette: brand hue + neutral tones (SKILL.md §6.4 max 4 hues)
     final colors = [
-      Colors.indigo,
-      Colors.orange,
-      Colors.teal,
-      Colors.pink,
-      Colors.purple,
-      Colors.cyan,
-      Colors.amber,
-      Colors.blueGrey,
+      AppColors.brandTeal,
+      ...AppColors.chartNeutrals,
     ];
 
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(context.tokens.radiusCard),
+        border: Border.all(color: AppColors.border),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
               'Pengeluaran per Kategori',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             const Text(
               'Alokasi pos belanja dan persentase',
-              style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+              style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             if (categories.isEmpty)
               const Center(
                 child: Padding(
                   padding: EdgeInsets.symmetric(vertical: 24),
-                  child: Text('Tidak ada pengeluaran pada periode ini.'),
+                  child: Text('Tidak ada pengeluaran pada periode ini.',
+                      style: TextStyle(
+                          color: AppColors.textSecondary, fontSize: 13)),
                 ),
               )
             else ...[
@@ -689,7 +737,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                         value: c.totalAmount.toDouble(),
                         title: '${c.percentage.toStringAsFixed(0)}%',
                         color: col,
-                        radius: 50,
+                        radius: 46,
                         titleStyle: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
@@ -700,7 +748,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
               Column(
                 children:
                     categories.take(5).toList().asMap().entries.map((entry) {
@@ -708,25 +756,29 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   final c = entry.value;
                   final col = colors[idx % colors.length];
                   return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    padding: const EdgeInsets.symmetric(vertical: 3),
                     child: Row(
                       children: [
                         Container(
-                            width: 12,
-                            height: 12,
+                            width: 10,
+                            height: 10,
                             decoration: BoxDecoration(
                                 color: col, shape: BoxShape.circle)),
                         const SizedBox(width: 8),
                         Expanded(
                             child: Text(c.categoryName,
-                                style: const TextStyle(fontSize: 13))),
+                                style: const TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.textPrimary))),
                         Text(formatRupiah(c.totalAmount),
                             style: const TextStyle(
-                                fontWeight: FontWeight.w600, fontSize: 13)),
-                        const SizedBox(width: 8),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                                color: AppColors.textPrimary)),
+                        const SizedBox(width: 6),
                         Text('(${c.percentage.toStringAsFixed(1)}%)',
                             style: const TextStyle(
-                                color: AppColors.textMuted, fontSize: 11)),
+                                color: AppColors.textSecondary, fontSize: 11)),
                       ],
                     ),
                   );
@@ -740,18 +792,25 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
   Widget _buildNetWorthCard(FinancialComprehensiveReport r) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(context.tokens.radiusCard),
+        border: Border.all(color: AppColors.border),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
               'Kekayaan Bersih & Posisi Aset',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             _buildKvRow(
                 'Total Saldo Dompet & Bank', formatRupiah(r.totalCashBalance)),
             _buildKvRow('Nilai Portofolio Investasi',
@@ -767,7 +826,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 color: AppColors.expense),
             const Divider(height: 16),
             _buildKvRow('Net Worth', formatRupiah(r.netWorth),
-                isBold: true, color: AppColors.primary, fontSize: 16),
+                isBold: true, color: AppColors.brandTeal, fontSize: 16),
           ],
         ),
       ),
@@ -778,18 +837,25 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final gain = r.totalInvestmentsValue - r.totalInvestmentsCost;
     final isPositive = gain >= 0;
 
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(context.tokens.radiusCard),
+        border: Border.all(color: AppColors.border),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
               'Investasi & Deposito',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             _buildKvRow('Modal Akuisisi Investasi',
                 formatRupiah(r.totalInvestmentsCost)),
             _buildKvRow(
@@ -818,13 +884,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           Text(label,
               style: TextStyle(
                   fontSize: fontSize,
+                  color: AppColors.textSecondary,
                   fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
           Text(
             value,
             style: TextStyle(
               fontSize: fontSize,
               fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
-              color: color,
+              color: color ?? AppColors.textPrimary,
             ),
           ),
         ],
@@ -842,7 +909,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
         const SizedBox(width: 4),
         Text(label,
-            style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+            style:
+                const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
       ],
     );
   }

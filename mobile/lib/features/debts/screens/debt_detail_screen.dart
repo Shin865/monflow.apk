@@ -233,6 +233,7 @@ class _DebtDetailScreenState extends ConsumerState<DebtDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.tokens;
     final debtRepo = ref.watch(debtRepositoryProvider);
 
     return Scaffold(
@@ -271,10 +272,10 @@ class _DebtDetailScreenState extends ConsumerState<DebtDetailScreen> {
             children: [
               // Main Card
               Container(
-                padding: const EdgeInsets.all(18),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(tokens.radiusCard),
                   border: Border.all(color: AppColors.border),
                 ),
                 child: Column(
@@ -287,31 +288,33 @@ class _DebtDetailScreenState extends ConsumerState<DebtDetailScreen> {
                           child: Text(
                             debt.name,
                             style: const TextStyle(
-                                fontSize: 20, fontWeight: FontWeight.bold),
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary),
                           ),
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
+                              horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: badgeColor.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(8),
+                            color: badgeColor.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
                             badgeText,
                             style: TextStyle(
                                 color: badgeColor,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 11),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     Text(
                       formatRupiah(debt.remainingAmount),
                       style: TextStyle(
-                        fontSize: 28,
+                        fontSize: 26,
                         fontWeight: FontWeight.bold,
                         color: isHutang ? AppColors.expense : AppColors.income,
                       ),
@@ -319,9 +322,9 @@ class _DebtDetailScreenState extends ConsumerState<DebtDetailScreen> {
                     Text(
                       'Sisa pokok dari total ${formatRupiah(debt.totalAmount)}',
                       style: const TextStyle(
-                          color: AppColors.textMuted, fontSize: 13),
+                          color: AppColors.textSecondary, fontSize: 12),
                     ),
-                    const Divider(height: 24),
+                    const Divider(height: 20),
                     _DetailRow(
                       label: 'Tipe',
                       value: isHutang
@@ -363,123 +366,201 @@ class _DebtDetailScreenState extends ConsumerState<DebtDetailScreen> {
                 ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
               if (!item.isPaid)
                 FilledButton.icon(
                   onPressed: () => _showRecordPaymentDialog(context, item),
-                  icon: Icon(isHutang
-                      ? Icons.payment_rounded
-                      : Icons.move_to_inbox_rounded),
-                  label: Text(isHutang
-                      ? 'Bayar Cicilan / Pelunasan'
-                      : 'Terima Pembayaran Cicilan'),
+                  icon: Icon(
+                    isHutang
+                        ? Icons.payment_rounded
+                        : Icons.move_to_inbox_rounded,
+                    size: 20,
+                  ),
+                  label: Text(
+                    isHutang
+                        ? 'Bayar Cicilan / Pelunasan'
+                        : 'Terima Pembayaran Cicilan',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
                   style: FilledButton.styleFrom(
-                    backgroundColor:
-                        isHutang ? AppColors.expense : AppColors.income,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    backgroundColor: AppColors.primaryDark,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size.fromHeight(48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(tokens.radiusControl),
+                    ),
                   ),
                 ),
 
               // Jadwal Cicilan (Jika ada)
               if (item.schedule.isNotEmpty) ...[
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text('Jadwal Cicilan',
                         style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold)),
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary)),
                     Text('${item.schedule.length} periode',
                         style: const TextStyle(
-                            color: AppColors.textMuted, fontSize: 13)),
+                            color: AppColors.textSecondary, fontSize: 12)),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 ...item.schedule.map((sch) {
-                  return Card(
+                  return Container(
                     margin: const EdgeInsets.only(bottom: 8),
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: sch.isPaid
-                            ? AppColors.income.withOpacity(0.15)
-                            : AppColors.surfaceLight,
-                        child: Icon(
-                          sch.isPaid
-                              ? Icons.check_circle_rounded
-                              : Icons.schedule_rounded,
-                          color: sch.isPaid
-                              ? AppColors.income
-                              : AppColors.textMuted,
-                          size: 20,
-                        ),
-                      ),
-                      title: Text(
-                          'Cicilan ke-${sch.installmentNumber} • ${formatRupiah(sch.expectedAmount)}'),
-                      subtitle: Text(DateFormat('d MMMM yyyy', 'id_ID')
-                          .format(sch.dueDate)),
-                      trailing: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: (sch.isPaid
-                                  ? AppColors.income
-                                  : AppColors.warning)
-                              .withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          sch.isPaid ? 'Lunas' : 'Belum',
-                          style: TextStyle(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(tokens.radiusCard),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: sch.isPaid
+                                ? AppColors.income.withOpacity(0.12)
+                                : AppColors.surfaceVariant,
+                            borderRadius:
+                                BorderRadius.circular(tokens.radiusControl),
+                          ),
+                          child: Icon(
+                            sch.isPaid
+                                ? Icons.check_circle_rounded
+                                : Icons.schedule_rounded,
                             color: sch.isPaid
                                 ? AppColors.income
-                                : AppColors.warning,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
+                                : AppColors.textSecondary,
+                            size: 18,
                           ),
                         ),
-                      ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Cicilan ke-${sch.installmentNumber} • ${formatRupiah(sch.expectedAmount)}',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                    color: AppColors.textPrimary),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                DateFormat('d MMMM yyyy', 'id_ID')
+                                    .format(sch.dueDate),
+                                style: const TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.textSecondary),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: (sch.isPaid
+                                    ? AppColors.income
+                                    : AppColors.warning)
+                                .withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            sch.isPaid ? 'Lunas' : 'Belum',
+                            style: TextStyle(
+                              color: sch.isPaid
+                                  ? AppColors.income
+                                  : AppColors.warning,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   );
                 }),
               ],
 
               // Riwayat Pembayaran
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text('Riwayat Pembayaran & Penerimaan',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary)),
                   Text('${item.payments.length} transaksi',
                       style: const TextStyle(
-                          color: AppColors.textMuted, fontSize: 13)),
+                          color: AppColors.textSecondary, fontSize: 12)),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
 
               if (item.payments.isEmpty)
                 const Center(
                   child: Padding(
-                    padding: EdgeInsets.all(32.0),
-                    child: Text('Belum ada transaksi pembayaran.'),
+                    padding: EdgeInsets.all(28.0),
+                    child: Text('Belum ada transaksi pembayaran.',
+                        style: TextStyle(color: AppColors.textSecondary)),
                   ),
                 )
               else
                 ...item.payments.map((p) {
-                  return Card(
+                  return Container(
                     margin: const EdgeInsets.only(bottom: 8),
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: AppColors.income.withOpacity(0.15),
-                        child: const Icon(Icons.check_rounded,
-                            color: AppColors.income, size: 20),
-                      ),
-                      title: Text(formatRupiah(p.amount),
-                          style: const TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text(
-                        '${formatDate(p.date)} • Pokok: ${formatRupiah(p.principalAmount)}${p.interestAmount > 0 ? ' • Bunga: ${formatRupiah(p.interestAmount)}' : ''}${p.notes != null ? ' (${p.notes})' : ''}',
-                      ),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(tokens.radiusCard),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: AppColors.income.withOpacity(0.12),
+                            borderRadius:
+                                BorderRadius.circular(tokens.radiusControl),
+                          ),
+                          child: const Icon(Icons.check_rounded,
+                              color: AppColors.income, size: 18),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                formatRupiah(p.amount),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                    color: AppColors.textPrimary),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${formatDate(p.date)} • Pokok: ${formatRupiah(p.principalAmount)}${p.interestAmount > 0 ? ' • Bunga: ${formatRupiah(p.interestAmount)}' : ''}${p.notes != null ? ' (${p.notes})' : ''}',
+                                style: const TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.textSecondary),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   );
                 }),
@@ -505,10 +586,13 @@ class _DetailRow extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label,
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+              style: const TextStyle(
+                  color: AppColors.textSecondary, fontSize: 13)),
           Text(value,
-              style:
-                  const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+              style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textPrimary)),
         ],
       ),
     );

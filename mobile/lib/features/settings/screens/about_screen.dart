@@ -163,31 +163,42 @@ class _AboutScreenState extends State<AboutScreen> {
           children: [
             const SizedBox(height: 12),
 
-            // Logo & Identity (Clean achromatic ledger mark)
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                color: tokens.surfaceRaised,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: tokens.border, width: 1.5),
-              ),
-              child: Center(
-                child: Icon(
-                  Icons.show_chart_rounded,
-                  color: tokens.dataHue,
-                  size: 38,
+            // Logo & Identity (Official Project Icon)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Image.asset(
+                'assets/app_icon.png',
+                width: 68,
+                height: 68,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  width: 68,
+                  height: 68,
+                  decoration: BoxDecoration(
+                    color: AppColors.brandTealWash,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                        color: AppColors.brandTeal.withOpacity(0.3),
+                        width: 1.5),
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.account_balance_wallet_rounded,
+                      color: AppColors.brandTeal,
+                      size: 34,
+                    ),
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
 
-            Text(
+            const Text(
               'Money Flow',
               style: TextStyle(
-                fontSize: 22,
+                fontSize: 20,
                 fontWeight: FontWeight.w800,
-                color: tokens.textPrimary,
+                color: AppColors.textPrimary,
                 letterSpacing: -0.5,
               ),
             ),
@@ -195,33 +206,33 @@ class _AboutScreenState extends State<AboutScreen> {
 
             Text(
               'Versi $_appVersion+$_buildNumber',
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 13,
-                color: tokens.textMuted,
+                color: AppColors.textSecondary,
               ),
             ),
             const SizedBox(height: 2),
 
-            Text(
+            const Text(
               'Pencatatan Keuangan Mandiri & Aman',
               style: TextStyle(
                 fontSize: 12,
-                color: tokens.textMuted,
+                color: AppColors.textSecondary,
               ),
             ),
 
-            const SizedBox(height: 28),
+            const SizedBox(height: 24),
 
             // About Card
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: tokens.surfaceRaised,
-                borderRadius: BorderRadius.circular(tokens.radiusCard),
-                border: Border.all(color: tokens.border),
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(context.tokens.radiusCard),
+                border: Border.all(color: AppColors.border),
               ),
-              child: Column(
+              child: const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
@@ -229,11 +240,11 @@ class _AboutScreenState extends State<AboutScreen> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      color: tokens.textPrimary,
+                      color: AppColors.textPrimary,
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  const Text(
+                  SizedBox(height: 8),
+                  Text(
                     'Money Flow adalah aplikasi pengelolaan keuangan pribadi '
                     'yang membantu pengguna mencatat dan memantau kondisi keuangan. '
                     'Semua data tersimpan secara aman di perangkat Anda demi privasi maksimal.\n\n'
@@ -242,7 +253,7 @@ class _AboutScreenState extends State<AboutScreen> {
                     'rencana pembelian, laporan keuangan, serta backup & pemulihan data.',
                     style: TextStyle(
                       fontSize: 13,
-                      height: 1.6,
+                      height: 1.5,
                       color: AppColors.textSecondary,
                     ),
                   ),
@@ -255,7 +266,7 @@ class _AboutScreenState extends State<AboutScreen> {
             // Developer Info
             _buildInfoTile(
               icon: Icons.person_rounded,
-              iconColor: AppColors.primary,
+              iconColor: AppColors.brandTeal,
               title: 'Pengembang',
               subtitle: _developerName,
               onTap: () => _openUrl(_developerGithub),
@@ -264,7 +275,7 @@ class _AboutScreenState extends State<AboutScreen> {
 
             _buildInfoTile(
               icon: Icons.code_rounded,
-              iconColor: Colors.white,
+              iconColor: AppColors.primaryDark,
               title: 'Repository GitHub',
               subtitle: _githubRepo,
               onTap: () => _openUrl(_githubUrl),
@@ -289,7 +300,7 @@ class _AboutScreenState extends State<AboutScreen> {
               onTap: () => _showLicenseDetails(context),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
 
             // Check for Updates
             SizedBox(
@@ -305,28 +316,32 @@ class _AboutScreenState extends State<AboutScreen> {
                           color: Colors.white,
                         ),
                       )
-                    : const Icon(Icons.system_update_rounded, size: 20),
+                    : const Icon(Icons.system_update_rounded, size: 18),
                 label: Text(
                   _isCheckingUpdate
                       ? 'Mengecek...'
                       : 'Cek Pembaruan di GitHub Releases',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  backgroundColor: AppColors.primaryDark,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(48),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius:
+                        BorderRadius.circular(context.tokens.radiusControl),
                   ),
                 ),
               ),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
 
             // Footer
             Text(
               '© 2024-2026 $_developerName',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: AppColors.textMuted.withOpacity(0.6),
+                color: AppColors.textSecondary.withOpacity(0.7),
                 fontSize: 11,
               ),
             ),
@@ -334,11 +349,11 @@ class _AboutScreenState extends State<AboutScreen> {
             Text(
               'Dibuat dengan Flutter & Drift (SQLite)',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: AppColors.textMuted.withOpacity(0.5),
+                color: AppColors.textSecondary.withOpacity(0.6),
                 fontSize: 10,
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
           ],
         ),
       ),

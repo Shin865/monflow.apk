@@ -1,101 +1,188 @@
-# ==========================================
-# Database & Local Storage (Privacy First)
-# ==========================================
+# ==============================================================================
+# MONEY FLOW - MASTER .GITIGNORE
+# Comprehensive Git Exclusion Rules (Privacy, Security, Build, IDE & OS)
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Financial Privacy, Database & User Data (NEVER COMMIT SENSITIVE USER DATA)
+# ------------------------------------------------------------------------------
 *.db
 *.db-journal
 *.db-wal
 *.db-shm
 *.sqlite
 *.sqlite3
+*.backup
+*.enc
+
+# Exported user financial reports (CSV, PDF, Excel)
+**/exports/
+exports/
+**/backups/
 backups/
+# Whitelist sample template asset used for migration testing
+!mobile/assets/backup/desktop_migrated_backup.json
 
-# ==========================================
-# Flutter & Dart Artifacts
-# ==========================================
-.dart_tool/
-mobile/.dart_tool/
-.packages
-mobile/.packages
-build/
-mobile/build/
-.flutter-plugins
-mobile/.flutter-plugins
-.flutter-plugins-dependencies
-mobile/.flutter-plugins-dependencies
-.pub-cache/
-mobile/.pub-cache/
-.pub/
-mobile/.pub/
-mobile/coverage/
-*.g.dart
-
-# ==========================================
-# Android Native Build Artifacts
-# ==========================================
-mobile/android/.gradle/
-mobile/android/captures/
-mobile/android/gradleArtifacts/
-mobile/android/app/debug/
-mobile/android/app/profile/
-mobile/android/app/release/
-mobile/android/local.properties
-mobile/android/GeneratedPluginRegistrant.java
-
-# ==========================================
-# Android Keystore, Keys, & Signing Secrets
-# ==========================================
+# ------------------------------------------------------------------------------
+# 2. Security, Keystores, Keys & Signing Secrets (CRITICAL)
+# ------------------------------------------------------------------------------
 *.keystore
 *.jks
-key.properties
-mobile/android/key.properties
 *.key
 *.p12
+*.pfx
+*.pem
+*.cer
+*.crt
+*.der
+**/key.properties
+key.properties
+!mobile/android/key.properties.example
+signing.properties
+**/signing.properties
+.env
+.env.*
+*.env
+secrets.json
+private_keys.json
 
-# ==========================================
-# IDE & Operating System Files
-# ==========================================
+# ------------------------------------------------------------------------------
+# 3. Flutter & Dart Build Artifacts & Generated Files
+# ------------------------------------------------------------------------------
+web/
+**/web/
+.dart_tool/
+**/.dart_tool/
+.packages
+**/.packages
+build/
+**/build/
+.flutter-plugins
+**/.flutter-plugins
+.flutter-plugins-dependencies
+**/.flutter-plugins-dependencies
+.pub-cache/
+**/.pub-cache/
+.pub/
+**/.pub/
+**/devtools_options.yaml
+devtools_options.yaml
+
+# Generated database & model code (regenerated via `dart run build_runner build`)
+*.g.dart
+
+# ------------------------------------------------------------------------------
+# 4. Android Native Build Artifacts & Outputs
+# ------------------------------------------------------------------------------
+.gradle/
+**/.gradle/
+local.properties
+**/local.properties
+GeneratedPluginRegistrant.java
+**/GeneratedPluginRegistrant.java
+captures/
+**/captures/
+gradleArtifacts/
+**/gradleArtifacts/
+**/app/debug/
+**/app/profile/
+**/app/release/
+
+# Compiled Android packages & bytecode
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+
+# ------------------------------------------------------------------------------
+# 5. IDE & Code Editor Configurations
+# ------------------------------------------------------------------------------
+# Visual Studio Code
+.vscode/*
+!.vscode/extensions.json
+*.code-workspace
+
+# Android Studio & JetBrains IntelliJ
+.idea/
+**/.idea/
+*.iml
+**/*.iml
+*.iws
+*.ipr
+out/
+
+# Other IDEs & Editors
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*.swo
+*.sw?
+*~
+*.bak
+
+# ------------------------------------------------------------------------------
+# 6. Operating System Artifacts
+# ------------------------------------------------------------------------------
+# macOS
 .DS_Store
 .DS_Store?
 ._*
 .Spotlight-V100
 .Trashes
-ehthumbs.db
+
+# Windows
 Thumbs.db
-.idea/
-mobile/.idea/
-*.iml
-mobile/*.iml
-.vscode/*
-!.vscode/extensions.json
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-*.bak
+ehthumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+.directory
+.fuse_hidden*
+
+# ------------------------------------------------------------------------------
+# 7. Logs, Dumps & Temp Files
+# ------------------------------------------------------------------------------
 *.log
+*.tmp
+*.temp
+*.stackdump
+hs_err_pid*
 
-# ==========================================
-# Skill & Assistant Prompts
-# ==========================================
-[sS][kK][iI][lL][lL].[mM][dD]
-SKILL.md
-skill.md
-.taste-skill/
+# ------------------------------------------------------------------------------
+# 8. Python & Environment Artifacts
+# ------------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
 
-# ==========================================
-# Documentation & Specs
-# ==========================================
-docs/*
-!docs/SIGNING.md
-doc/
-documentation/
-
-# ==========================================
-# Test Coverage & Temp Data
-# ==========================================
+# ------------------------------------------------------------------------------
+# 9. Test Coverage & Test Data
+# ------------------------------------------------------------------------------
 coverage/
-mobile/coverage/
+**/coverage/
 test_data/
 test-data/
 fixtures/
+
+# ------------------------------------------------------------------------------
+# 10. AI Skills & Assistant Directives
+# ------------------------------------------------------------------------------
+[sS][kK][iI][lL][lL].[mM][dD]
+.taste-skill/
+
+# ------------------------------------------------------------------------------
+# 11. Documentation, Specifications & Internal Checklists (DO NOT UPLOAD)
+# ------------------------------------------------------------------------------
+docs/
+**/docs/
+doc/
+**/doc/
+documentation/
+**/documentation/

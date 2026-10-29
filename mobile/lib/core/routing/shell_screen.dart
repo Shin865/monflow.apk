@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:money_flow/core/theme/app_theme.dart';
 
-/// Shell screen with bottom navigation bar.
+/// Shell screen with bottom navigation bar (Finsave 4-tab style).
 class ShellScreen extends StatelessWidget {
   final Widget child;
 
@@ -37,7 +37,6 @@ class ShellScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final selectedIndex = _calculateSelectedIndex(context);
-
     final tokens = context.tokens;
 
     return Scaffold(
@@ -54,23 +53,23 @@ class ShellScreen extends StatelessWidget {
           onTap: (index) => _onItemTapped(context, index),
           items: const [
             BottomNavigationBarItem(
-              icon: Icon(Icons.dashboard_rounded),
-              activeIcon: Icon(Icons.dashboard_rounded),
+              icon: Icon(Icons.grid_view_outlined, size: 22),
+              activeIcon: Icon(Icons.grid_view_rounded, size: 22),
               label: 'Dashboard',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.swap_horiz_rounded),
-              activeIcon: Icon(Icons.swap_horiz_rounded),
+              icon: Icon(Icons.receipt_long_outlined, size: 22),
+              activeIcon: Icon(Icons.receipt_long_rounded, size: 22),
               label: 'Transaksi',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.account_balance_wallet_rounded),
-              activeIcon: Icon(Icons.account_balance_wallet_rounded),
+              icon: Icon(Icons.account_balance_wallet_outlined, size: 22),
+              activeIcon: Icon(Icons.account_balance_wallet_rounded, size: 22),
               label: 'Dompet',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.settings_rounded),
-              activeIcon: Icon(Icons.settings_rounded),
+              icon: Icon(Icons.tune_outlined, size: 22),
+              activeIcon: Icon(Icons.tune_rounded, size: 22),
               label: 'Pengaturan',
             ),
           ],

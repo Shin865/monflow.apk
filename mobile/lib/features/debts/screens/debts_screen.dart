@@ -389,14 +389,17 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen>
         title: const Text('Hutang & Piutang'),
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: AppColors.primary,
-          labelColor: AppColors.primary,
-          unselectedLabelColor: AppColors.textMuted,
+          indicatorColor: AppColors.brandTeal,
+          labelColor: AppColors.brandTeal,
+          unselectedLabelColor: AppColors.textSecondary,
+          indicatorWeight: 2.5,
           tabs: const [
-            Tab(text: 'Hutang Kita', icon: Icon(Icons.arrow_downward_rounded)),
+            Tab(
+                text: 'Hutang Kita',
+                icon: Icon(Icons.arrow_downward_rounded, size: 18)),
             Tab(
                 text: 'Piutang (Uang di Orang)',
-                icon: Icon(Icons.arrow_upward_rounded)),
+                icon: Icon(Icons.arrow_upward_rounded, size: 18)),
           ],
         ),
       ),
@@ -470,9 +473,18 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen>
               _tabController.index == 0 ? DebtType.hutang : DebtType.piutang;
           _showCreateDebtDialog(context, currentType);
         },
-        icon: const Icon(Icons.add_rounded),
+        backgroundColor: AppColors.primary,
+        elevation: 0,
+        highlightElevation: 0,
+        icon: const Icon(Icons.add_rounded, color: Colors.white, size: 20),
         label: Text(
-            _tabController.index == 0 ? 'Tambah Hutang' : 'Tambah Piutang'),
+          _tabController.index == 0 ? 'Tambah Hutang' : 'Tambah Piutang',
+          style:
+              const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
       ),
     );
   }
@@ -491,24 +503,26 @@ class _SummaryBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.tokens;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(tokens.radiusControl),
         border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title,
-              style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+              style:
+                  const TextStyle(fontSize: 10, color: AppColors.textSecondary),
               maxLines: 1),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Text(
             formatRupiah(amount),
             style: TextStyle(
-                fontWeight: FontWeight.bold, fontSize: 13, color: color),
+                fontWeight: FontWeight.bold, fontSize: 12, color: color),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -531,6 +545,7 @@ class _DebtListView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final tokens = context.tokens;
     final debtRepo = ref.watch(debtRepositoryProvider);
 
     return FutureBuilder<List<EnrichedDebt>>(
@@ -587,11 +602,12 @@ class _DebtListView extends ConsumerWidget {
               statusText = 'Aktif';
             }
 
-            return Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-                side: BorderSide(
+            return Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(tokens.radiusCard),
+                border: Border.all(
                   color: item.isOverdue
                       ? AppColors.expense.withOpacity(0.5)
                       : AppColors.border,
@@ -603,23 +619,24 @@ class _DebtListView extends ConsumerWidget {
                       .pushNamed('debt_detail', extra: debt.id)
                       .then((_) => onDeleted());
                 },
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(tokens.radiusCard),
                 child: Padding(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
                           Container(
-                            width: 38,
-                            height: 38,
+                            width: 36,
+                            height: 36,
                             decoration: BoxDecoration(
                               color: (type == DebtType.hutang
                                       ? AppColors.expense
                                       : AppColors.income)
-                                  .withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(10),
+                                  .withOpacity(0.12),
+                              borderRadius:
+                                  BorderRadius.circular(tokens.radiusControl),
                             ),
                             alignment: Alignment.center,
                             child: Icon(
@@ -629,7 +646,7 @@ class _DebtListView extends ConsumerWidget {
                               color: type == DebtType.hutang
                                   ? AppColors.expense
                                   : AppColors.income,
-                              size: 20,
+                              size: 18,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -640,15 +657,17 @@ class _DebtListView extends ConsumerWidget {
                                 Text(
                                   debt.name,
                                   style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 15),
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                      color: AppColors.textPrimary),
                                 ),
                                 Text(
                                   debt.person != null
                                       ? '${debt.person!} • $statusText'
                                       : statusText,
                                   style: const TextStyle(
-                                      fontSize: 12, color: AppColors.textMuted),
+                                      fontSize: 11,
+                                      color: AppColors.textSecondary),
                                 ),
                               ],
                             ),
@@ -658,13 +677,13 @@ class _DebtListView extends ConsumerWidget {
                             children: [
                               const Text('Sisa Pokok',
                                   style: TextStyle(
-                                      fontSize: 11,
-                                      color: AppColors.textMuted)),
+                                      fontSize: 10,
+                                      color: AppColors.textSecondary)),
                               Text(
                                 formatRupiah(debt.remainingAmount),
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 15,
+                                  fontSize: 14,
                                   color: type == DebtType.hutang
                                       ? AppColors.expense
                                       : AppColors.income,
@@ -674,13 +693,13 @@ class _DebtListView extends ConsumerWidget {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
                       ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius: BorderRadius.circular(3),
                         child: LinearProgressIndicator(
                           value: (item.progress / 100).clamp(0.0, 1.0),
-                          minHeight: 6,
-                          backgroundColor: AppColors.surfaceLight,
+                          minHeight: 5,
+                          backgroundColor: AppColors.surfaceVariant,
                           valueColor: AlwaysStoppedAnimation<Color>(
                             type == DebtType.hutang
                                 ? AppColors.expense
@@ -688,24 +707,24 @@ class _DebtListView extends ConsumerWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
                             'Dibayar: ${formatRupiah(item.totalPaid)} (${item.progress.toStringAsFixed(1)}%)',
                             style: const TextStyle(
-                                fontSize: 12, color: AppColors.textMuted),
+                                fontSize: 11, color: AppColors.textSecondary),
                           ),
                           Text(
                             'Total: ${formatRupiah(debt.totalAmount)}',
                             style: const TextStyle(
-                                fontSize: 12, color: AppColors.textMuted),
+                                fontSize: 11, color: AppColors.textSecondary),
                           ),
                         ],
                       ),
                       if (!item.isPaid) ...[
-                        const Divider(height: 18),
+                        const Divider(height: 16),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -713,31 +732,30 @@ class _DebtListView extends ConsumerWidget {
                               Text(
                                 'Jatuh tempo: ${formatDate(debt.dueDate!)}',
                                 style: const TextStyle(
-                                    fontSize: 11, color: AppColors.textMuted),
+                                    fontSize: 11,
+                                    color: AppColors.textSecondary),
                               )
                             else
                               const SizedBox.shrink(),
-                            FilledButton.tonal(
+                            FilledButton(
                               onPressed: () => onPay(item),
                               style: FilledButton.styleFrom(
-                                backgroundColor: (type == DebtType.hutang
-                                        ? AppColors.expense
-                                        : AppColors.income)
-                                    .withOpacity(0.15),
-                                foregroundColor: type == DebtType.hutang
-                                    ? AppColors.expense
-                                    : AppColors.income,
+                                backgroundColor: AppColors.primaryDark,
+                                foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 14, vertical: 6),
-                                minimumSize: Size.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    horizontal: 12, vertical: 6),
+                                minimumSize: const Size(0, 32),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                      tokens.radiusControl),
+                                ),
                               ),
                               child: Text(
                                 type == DebtType.hutang
                                     ? 'Bayar Cicilan'
                                     : 'Terima Pembayaran',
                                 style: const TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 12),
+                                    fontWeight: FontWeight.w600, fontSize: 11),
                               ),
                             ),
                           ],

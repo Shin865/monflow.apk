@@ -150,6 +150,7 @@ class _BillDetailScreenState extends ConsumerState<BillDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.tokens;
     final billRepo = ref.watch(billRepositoryProvider);
     final accountRepo = ref.watch(accountRepositoryProvider);
 
@@ -175,7 +176,7 @@ class _BillDetailScreenState extends ConsumerState<BillDetailScreen> {
           String badgeText;
           switch (bill.status) {
             case BillStatus.upcoming:
-              badgeColor = AppColors.primary;
+              badgeColor = AppColors.brandTeal;
               badgeText = 'Mendatang';
               break;
             case BillStatus.dueSoon:
@@ -197,10 +198,10 @@ class _BillDetailScreenState extends ConsumerState<BillDetailScreen> {
             children: [
               // Main Card
               Container(
-                padding: const EdgeInsets.all(18),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(tokens.radiusCard),
                   border: Border.all(color: AppColors.border),
                 ),
                 child: Column(
@@ -213,35 +214,37 @@ class _BillDetailScreenState extends ConsumerState<BillDetailScreen> {
                           child: Text(
                             bill.name,
                             style: const TextStyle(
-                                fontSize: 20, fontWeight: FontWeight.bold),
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary),
                           ),
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
+                              horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: badgeColor.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(8),
+                            color: badgeColor.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
                             badgeText,
                             style: TextStyle(
                                 color: badgeColor,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 11),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     Text(
                       formatRupiah(bill.amount),
                       style: const TextStyle(
-                          fontSize: 28,
+                          fontSize: 26,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white),
+                          color: AppColors.textPrimary),
                     ),
-                    const Divider(height: 24),
+                    const Divider(height: 20),
                     _DetailRow(
                       label: 'Jatuh Tempo',
                       value: DateFormat('EEEE, d MMMM yyyy', 'id_ID')
@@ -281,37 +284,45 @@ class _BillDetailScreenState extends ConsumerState<BillDetailScreen> {
                 ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
               if (!item.isPaid)
                 FilledButton.icon(
                   onPressed: () => _showPayDialog(context, item),
-                  icon: const Icon(Icons.payment_rounded),
-                  label: const Text('Bayar Tagihan'),
+                  icon: const Icon(Icons.payment_rounded, size: 20),
+                  label: const Text('Bayar Tagihan',
+                      style: TextStyle(fontWeight: FontWeight.w600)),
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.income,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    backgroundColor: AppColors.primaryDark,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size.fromHeight(48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(tokens.radiusControl),
+                    ),
                   ),
                 ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text('Riwayat Pembayaran',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary)),
                   Text('${item.payments.length} pembayaran',
                       style: const TextStyle(
-                          color: AppColors.textMuted, fontSize: 13)),
+                          color: AppColors.textSecondary, fontSize: 12)),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
 
               if (item.payments.isEmpty)
                 const Center(
                   child: Padding(
-                    padding: EdgeInsets.all(32.0),
-                    child: Text('Belum ada catatan pembayaran.'),
+                    padding: EdgeInsets.all(28.0),
+                    child: Text('Belum ada catatan pembayaran.',
+                        style: TextStyle(color: AppColors.textSecondary)),
                   ),
                 )
               else
@@ -321,19 +332,51 @@ class _BillDetailScreenState extends ConsumerState<BillDetailScreen> {
                     builder: (context, accSnap) {
                       final accName =
                           accSnap.data?.name ?? 'Akun #${p.accountId}';
-                      return Card(
+                      return Container(
                         margin: const EdgeInsets.only(bottom: 8),
-                        child: ListTile(
-                          leading: const CircleAvatar(
-                            backgroundColor: AppColors.surfaceLight,
-                            child: Icon(Icons.check_rounded,
-                                color: AppColors.income, size: 20),
-                          ),
-                          title: Text(formatRupiah(p.amount),
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text(
-                              '${formatDate(p.date)} • $accName${p.notes != null ? ' (${p.notes})' : ''}'),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius:
+                              BorderRadius.circular(tokens.radiusCard),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: AppColors.brandTealWash,
+                                borderRadius:
+                                    BorderRadius.circular(tokens.radiusControl),
+                              ),
+                              child: const Icon(Icons.check_rounded,
+                                  color: AppColors.income, size: 18),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    formatRupiah(p.amount),
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                        color: AppColors.textPrimary),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '${formatDate(p.date)} • $accName${p.notes != null ? ' (${p.notes})' : ''}',
+                                    style: const TextStyle(
+                                        fontSize: 11,
+                                        color: AppColors.textSecondary),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       );
                     },
@@ -368,7 +411,8 @@ class _DetailRow extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label,
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+              style: const TextStyle(
+                  color: AppColors.textSecondary, fontSize: 13)),
           Text(
             value,
             style: TextStyle(

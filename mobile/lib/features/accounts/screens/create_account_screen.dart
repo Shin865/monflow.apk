@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:money_flow/core/formatting/thousand_separator_formatter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:money_flow/core/database/database.dart';
+import 'package:money_flow/core/formatting/thousand_separator_formatter.dart';
 import 'package:money_flow/core/theme/app_theme.dart';
+import 'package:money_flow/core/widgets/common_widgets.dart';
 import 'package:money_flow/data/repositories/account_repository.dart';
 
-/// Layar buat akun/dompet baru.
+/// Layar buat akun/dompet baru (Finsave Reference & Taste-Skill).
 class CreateAccountScreen extends ConsumerStatefulWidget {
   const CreateAccountScreen({super.key});
 
@@ -24,28 +25,28 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
 
   AccountType _selectedType = AccountType.cash;
   String? _selectedIcon;
-  String _selectedColor = '#6366F1';
+  String _selectedColor = '#0F6B5F';
   bool _isLoading = false;
 
   final _typeOptions = [
-    (AccountType.cash, 'Uang Tunai', Icons.payments_rounded),
-    (AccountType.bank, 'Rekening Bank', Icons.account_balance_rounded),
-    (AccountType.ewallet, 'E-Wallet', Icons.phone_android_rounded),
-    (AccountType.savings, 'Tabungan', Icons.savings_rounded),
-    (AccountType.other, 'Lainnya', Icons.wallet_rounded),
+    (AccountType.cash, 'Uang Tunai', Icons.payments_outlined),
+    (AccountType.bank, 'Rekening Bank', Icons.account_balance_outlined),
+    (AccountType.ewallet, 'E-Wallet', Icons.phone_android_outlined),
+    (AccountType.savings, 'Tabungan', Icons.savings_outlined),
+    (AccountType.other, 'Lainnya', Icons.wallet_outlined),
   ];
 
   final _colorOptions = [
-    '#6366F1',
-    '#3B82F6',
-    '#10B981',
-    '#F59E0B',
-    '#EF4444',
-    '#EC4899',
-    '#8B5CF6',
-    '#F97316',
-    '#14B8A6',
-    '#6B7280',
+    '#0F6B5F', // Finsave Teal
+    '#18181B', // Charcoal
+    '#16A34A', // Emerald
+    '#2563EB', // Blue
+    '#D97706', // Amber
+    '#DC2626', // Red
+    '#7C3AED', // Purple
+    '#DB2777', // Pink
+    '#475569', // Slate
+    '#64748B', // Neutral
   ];
 
   @override
@@ -80,8 +81,7 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Dompet berhasil dibuat! 🎉'),
-            backgroundColor: AppColors.income,
+            content: Text('Dompet berhasil dibuat'),
           ),
         );
         context.pop();
@@ -91,7 +91,6 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Gagal membuat dompet: $e'),
-            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -102,6 +101,8 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.tokens;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Buat Dompet Baru'),
@@ -113,20 +114,23 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           children: [
-            // Nama
-            const Text('Nama Dompet',
-                style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
-                    fontSize: 13)),
+            // Nama Dompet
+            Text(
+              'Nama Dompet',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: tokens.textSecondary,
+                fontSize: 12,
+              ),
+            ),
             const SizedBox(height: 8),
             TextFormField(
               controller: _nameController,
               decoration: const InputDecoration(
-                hintText: 'Contoh: BCA, GoPay, Dompet',
-                prefixIcon: Icon(Icons.edit_rounded),
+                hintText: 'Contoh: Dompet Utama, BCA, GoPay',
+                prefixIcon: Icon(Icons.edit_outlined),
               ),
               textCapitalization: TextCapitalization.words,
               validator: (v) {
@@ -139,55 +143,55 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
                 return null;
               },
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
-            // Tipe
-            const Text('Tipe Dompet',
-                style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
-                    fontSize: 13)),
+            // Tipe Dompet
+            Text(
+              'Tipe Dompet',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: tokens.textSecondary,
+                fontSize: 12,
+              ),
+            ),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: _typeOptions.map((option) {
                 final isSelected = _selectedType == option.$1;
-                return GestureDetector(
+                return InkWell(
                   onTap: () => setState(() => _selectedType = option.$1),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
+                  borderRadius: BorderRadius.circular(tokens.radiusChip),
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: isSelected
-                          ? AppColors.primary.withOpacity(0.2)
-                          : AppColors.surfaceLight,
-                      borderRadius: BorderRadius.circular(12),
+                      color: isSelected ? tokens.brandWash : tokens.surface,
+                      borderRadius: BorderRadius.circular(tokens.radiusChip),
                       border: Border.all(
-                        color:
-                            isSelected ? AppColors.primary : AppColors.border,
-                        width: isSelected ? 2 : 1,
+                        color: isSelected ? tokens.brand : tokens.border,
+                        width: 1,
                       ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(option.$3,
-                            size: 18,
-                            color: isSelected
-                                ? AppColors.primary
-                                : AppColors.textMuted),
-                        const SizedBox(width: 8),
+                        Icon(
+                          option.$3,
+                          size: 16,
+                          color:
+                              isSelected ? tokens.brand : tokens.textSecondary,
+                        ),
+                        const SizedBox(width: 6),
                         Text(
                           option.$2,
                           style: TextStyle(
-                            color: isSelected
-                                ? AppColors.primary
-                                : AppColors.textSecondary,
+                            color:
+                                isSelected ? tokens.brand : tokens.textPrimary,
                             fontWeight:
                                 isSelected ? FontWeight.w600 : FontWeight.w400,
-                            fontSize: 13,
+                            fontSize: 12,
                           ),
                         ),
                       ],
@@ -196,27 +200,36 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
                 );
               }).toList(),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
-            // Saldo awal
-            const Text('Saldo Awal (Rp)',
-                style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
-                    fontSize: 13)),
+            // Saldo Awal
+            Text(
+              'Saldo Awal (Rp)',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: tokens.textSecondary,
+                fontSize: 12,
+              ),
+            ),
             const SizedBox(height: 8),
             TextFormField(
               controller: _balanceController,
               decoration: const InputDecoration(
-                hintText: 'Masukkan nominal',
-                prefixIcon: Icon(Icons.attach_money_rounded),
+                hintText: 'Masukkan nominal saldo',
                 prefixText: 'Rp ',
+                prefixIcon: Icon(Icons.attach_money_rounded),
               ),
               keyboardType: TextInputType.number,
               inputFormatters: [
                 FilteringTextInputFormatter.digitsOnly,
                 ThousandSeparatorInputFormatter(),
               ],
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: tokens.textPrimary,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
               validator: (v) {
                 if (v == null || v.trim().isEmpty) {
                   return 'Saldo awal wajib diisi';
@@ -229,14 +242,17 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
                 return null;
               },
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
-            // Warna
-            const Text('Warna',
-                style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
-                    fontSize: 13)),
+            // Warna Tag
+            Text(
+              'Warna Tag Identitas',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: tokens.textSecondary,
+                fontSize: 12,
+              ),
+            ),
             const SizedBox(height: 8),
             Wrap(
               spacing: 10,
@@ -247,66 +263,56 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
                 final isSelected = _selectedColor == colorHex;
                 return GestureDetector(
                   onTap: () => setState(() => _selectedColor = colorHex),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    width: 40,
-                    height: 40,
+                  child: Container(
+                    width: 32,
+                    height: 32,
                     decoration: BoxDecoration(
                       color: color,
                       shape: BoxShape.circle,
-                      border: isSelected
-                          ? Border.all(color: Colors.white, width: 3)
-                          : null,
-                      boxShadow: isSelected
-                          ? [
-                              BoxShadow(
-                                  color: color.withOpacity(0.5), blurRadius: 8)
-                            ]
-                          : null,
+                      border: Border.all(
+                        color: isSelected
+                            ? tokens.textPrimary
+                            : Colors.transparent,
+                        width: 2,
+                      ),
                     ),
                     child: isSelected
-                        ? const Icon(Icons.check, color: Colors.white, size: 20)
+                        ? const Icon(Icons.check, color: Colors.white, size: 16)
                         : null,
                   ),
                 );
               }).toList(),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
             // Deskripsi
-            const Text('Deskripsi (opsional)',
-                style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
-                    fontSize: 13)),
+            Text(
+              'Deskripsi (opsional)',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: tokens.textSecondary,
+                fontSize: 12,
+              ),
+            ),
             const SizedBox(height: 8),
             TextFormField(
               controller: _descController,
               decoration: const InputDecoration(
-                hintText: 'Catatan tambahan...',
-                prefixIcon: Icon(Icons.note_alt_outlined),
+                hintText: 'Keterangan atau nomor rekening...',
+                prefixIcon: Icon(Icons.notes_rounded),
               ),
               maxLines: 2,
               maxLength: 255,
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 20),
 
-            // Submit
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _submit,
-                child: _isLoading
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
-                      )
-                    : const Text('Simpan Dompet'),
-              ),
+            // Submit Button
+            MfButton.primary(
+              label: 'Simpan Dompet',
+              isLoading: _isLoading,
+              onPressed: _isLoading ? null : _submit,
             ),
+            const SizedBox(height: 24),
           ],
         ),
       ),

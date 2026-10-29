@@ -564,15 +564,24 @@ class _FilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.tokens;
     return FilterChip(
       label: Text(label),
       selected: isSelected,
       onSelected: (_) => onSelected(),
-      selectedColor: AppColors.primary.withOpacity(0.2),
-      checkmarkColor: AppColors.primary,
+      selectedColor: AppColors.brandTealWash,
+      checkmarkColor: AppColors.brandTeal,
+      backgroundColor: AppColors.surface,
+      side: BorderSide(
+        color: isSelected ? AppColors.brandTeal : AppColors.border,
+        width: 1,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(tokens.radiusChip),
+      ),
       labelStyle: TextStyle(
-        color: isSelected ? AppColors.primary : AppColors.textMuted,
-        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        color: isSelected ? AppColors.brandTeal : AppColors.textSecondary,
+        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
         fontSize: 12,
       ),
     );
@@ -594,11 +603,12 @@ class _BillCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.tokens;
     Color badgeColor;
     String badgeText;
     switch (item.bill.status) {
       case BillStatus.upcoming:
-        badgeColor = AppColors.primary;
+        badgeColor = AppColors.brandTeal;
         badgeText = 'Mendatang';
         break;
       case BillStatus.dueSoon:
@@ -632,11 +642,12 @@ class _BillCard extends StatelessWidget {
       dueSubtext = 'Terlambat ${diffDays.abs()} hari';
     }
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(tokens.radiusCard),
+        border: Border.all(
           color: item.isOverdue
               ? AppColors.expense.withOpacity(0.5)
               : AppColors.border,
@@ -644,24 +655,24 @@ class _BillCard extends StatelessWidget {
       ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(tokens.radiusCard),
         child: Padding(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(12),
           child: Column(
             children: [
               Row(
                 children: [
                   Container(
-                    width: 40,
-                    height: 40,
+                    width: 38,
+                    height: 38,
                     decoration: BoxDecoration(
-                      color: badgeColor.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(10),
+                      color: badgeColor.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(tokens.radiusControl),
                     ),
                     alignment: Alignment.center,
                     child: Text(
                       item.category?.icon ?? '📄',
-                      style: const TextStyle(fontSize: 20),
+                      style: const TextStyle(fontSize: 18),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -675,7 +686,9 @@ class _BillCard extends StatelessWidget {
                               child: Text(
                                 item.bill.name,
                                 style: const TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 15),
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                    color: AppColors.textPrimary),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -687,14 +700,14 @@ class _BillCard extends StatelessWidget {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: AppColors.transfer.withOpacity(0.15),
+                                  color: AppColors.transfer.withOpacity(0.12),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: const Text('Rutin',
                                     style: TextStyle(
                                         color: AppColors.transfer,
                                         fontSize: 10,
-                                        fontWeight: FontWeight.bold)),
+                                        fontWeight: FontWeight.w600)),
                               ),
                           ],
                         ),
@@ -702,12 +715,12 @@ class _BillCard extends StatelessWidget {
                         Text(
                           dueSubtext,
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 11,
                             color: item.isOverdue
                                 ? AppColors.expense
-                                : AppColors.textMuted,
+                                : AppColors.textSecondary,
                             fontWeight: item.isOverdue
-                                ? FontWeight.bold
+                                ? FontWeight.w600
                                 : FontWeight.normal,
                           ),
                         ),
@@ -721,22 +734,24 @@ class _BillCard extends StatelessWidget {
                       Text(
                         formatRupiah(item.bill.amount),
                         style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 15),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: AppColors.textPrimary),
                       ),
                       const SizedBox(height: 4),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
+                            horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: badgeColor.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(6),
+                          color: badgeColor.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
                           badgeText,
                           style: TextStyle(
                               color: badgeColor,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600),
                         ),
                       ),
                     ],
@@ -744,37 +759,43 @@ class _BillCard extends StatelessWidget {
                 ],
               ),
               if (!item.isPaid) ...[
-                const Divider(height: 20),
+                const Divider(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       'Sisa: ${formatRupiah(item.remaining)}',
                       style: const TextStyle(
-                          fontSize: 12, color: AppColors.textMuted),
+                          fontSize: 12, color: AppColors.textSecondary),
                     ),
                     Row(
                       children: [
                         IconButton(
                           icon: const Icon(Icons.delete_outline_rounded,
-                              size: 18, color: AppColors.textMuted),
+                              size: 18, color: AppColors.textSecondary),
                           onPressed: onDelete,
                           tooltip: 'Hapus Tagihan',
+                          padding: EdgeInsets.zero,
+                          constraints:
+                              const BoxConstraints(minWidth: 36, minHeight: 36),
                         ),
                         const SizedBox(width: 6),
-                        FilledButton.tonal(
+                        FilledButton(
                           onPressed: onPay,
                           style: FilledButton.styleFrom(
-                            backgroundColor: AppColors.income.withOpacity(0.15),
-                            foregroundColor: AppColors.income,
+                            backgroundColor: AppColors.primaryDark,
+                            foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 6),
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                horizontal: 12, vertical: 6),
+                            minimumSize: const Size(0, 32),
+                            shape: RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(tokens.radiusControl),
+                            ),
                           ),
                           child: const Text('Bayar',
                               style: TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 12)),
+                                  fontSize: 12, fontWeight: FontWeight.w600)),
                         ),
                       ],
                     ),

@@ -1,16 +1,17 @@
-/// Reusable UI components for Money Flow — Achromatic Ledger.
+/// Reusable UI components for Money Flow — Finsave Reference & Taste-Skill.
 library;
 
 import 'package:flutter/material.dart';
 import 'package:money_flow/core/theme/app_theme.dart';
 
-/// Card container dengan styling konsisten tanpa shadow di resting state.
+/// Card container datar putih dengan border 1px halus (tanpa bayangan/gradient).
 class MfCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry? padding;
   final VoidCallback? onTap;
   final Color? color;
   final Border? border;
+  final double? radius;
 
   const MfCard({
     super.key,
@@ -19,55 +20,187 @@ class MfCard extends StatelessWidget {
     this.onTap,
     this.color,
     this.border,
+    this.radius,
   });
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
+    final r = radius ?? tokens.radiusCard;
+
     final cardWidget = Container(
       width: double.infinity,
       padding: padding ?? EdgeInsets.all(tokens.pad),
       decoration: BoxDecoration(
         color: color ?? tokens.surface,
-        borderRadius: BorderRadius.circular(tokens.radiusCard),
+        borderRadius: BorderRadius.circular(r),
         border: border ?? Border.all(color: tokens.border, width: 1),
       ),
       child: child,
     );
 
     if (onTap != null) {
-      return InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(tokens.radiusCard),
-        child: cardWidget,
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(r),
+          child: cardWidget,
+        ),
       );
     }
     return cardWidget;
   }
 }
 
-/// Header bagian/section dengan hirarki tipografi yang jelas (SKILL.md §4.3 & §7.2).
+/// Tombol terstandarisasi Finsave:
+/// Primer = Charcoal (#18181B) dengan teks putih
+/// Sekunder = Putih dengan border tipis 1px (#E5E7EB)
+class MfButton extends StatelessWidget {
+  final String label;
+  final VoidCallback? onPressed;
+  final bool isPrimary;
+  final IconData? icon;
+  final bool isLoading;
+  final double height;
+  final double? width;
+
+  const MfButton({
+    super.key,
+    required this.label,
+    required this.onPressed,
+    this.isPrimary = true,
+    this.icon,
+    this.isLoading = false,
+    this.height = 48.0,
+    this.width,
+  });
+
+  factory MfButton.primary({
+    required String label,
+    required VoidCallback? onPressed,
+    IconData? icon,
+    bool isLoading = false,
+    double height = 48.0,
+    double? width,
+  }) {
+    return MfButton(
+      label: label,
+      onPressed: onPressed,
+      isPrimary: true,
+      icon: icon,
+      isLoading: isLoading,
+      height: height,
+      width: width,
+    );
+  }
+
+  factory MfButton.secondary({
+    required String label,
+    required VoidCallback? onPressed,
+    IconData? icon,
+    bool isLoading = false,
+    double height = 48.0,
+    double? width,
+  }) {
+    return MfButton(
+      label: label,
+      onPressed: onPressed,
+      isPrimary: false,
+      icon: icon,
+      isLoading: isLoading,
+      height: height,
+      width: width,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.tokens;
+
+    final childWidget = isLoading
+        ? SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                isPrimary ? Colors.white : tokens.textPrimary,
+              ),
+            ),
+          )
+        : Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (icon != null) ...[
+                Icon(
+                  icon,
+                  size: 18,
+                  color: isPrimary ? Colors.white : tokens.textPrimary,
+                ),
+                const SizedBox(width: 8),
+              ],
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: isPrimary ? Colors.white : tokens.textPrimary,
+                  letterSpacing: -0.1,
+                ),
+              ),
+            ],
+          );
+
+    return SizedBox(
+      height: height,
+      width: width ?? double.infinity,
+      child: Material(
+        color: isPrimary ? tokens.primaryButtonBg : tokens.secondaryButtonBg,
+        borderRadius: BorderRadius.circular(tokens.radiusControl),
+        child: InkWell(
+          onTap: isLoading ? null : onPressed,
+          borderRadius: BorderRadius.circular(tokens.radiusControl),
+          child: Container(
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(tokens.radiusControl),
+              border:
+                  isPrimary ? null : Border.all(color: tokens.border, width: 1),
+            ),
+            child: childWidget,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Header seksi bersih: Judul di kiri + Aksi/Lihat semua di kanan.
 class MfSectionHeader extends StatelessWidget {
   final String title;
   final String? subtitle;
   final Widget? trailing;
+  final VoidCallback? onViewAll;
 
   const MfSectionHeader({
     super.key,
     required this.title,
     this.subtitle,
     this.trailing,
+    this.onViewAll,
   });
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+      padding: const EdgeInsets.only(bottom: 10, top: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.baseline,
-        textBaseline: TextBaseline.alphabetic,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
             child: Column(
@@ -88,21 +221,38 @@ class MfSectionHeader extends StatelessWidget {
                     subtitle!,
                     style: TextStyle(
                       fontSize: 12,
-                      color: tokens.textMuted,
+                      color: tokens.textSecondary,
                     ),
                   ),
                 ],
               ],
             ),
           ),
-          if (trailing != null) trailing!,
+          if (trailing != null)
+            trailing!
+          else if (onViewAll != null)
+            InkWell(
+              onTap: onViewAll,
+              borderRadius: BorderRadius.circular(4),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                child: Text(
+                  'Lihat Semua',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: tokens.brand,
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
   }
 }
 
-/// Status Pill / Badge tenang (SKILL.md §7.6: pale tint + dark text of same hue).
+/// Status Pill / Badge tenang (pale tint + dark text of same hue).
 class MfPill extends StatelessWidget {
   final String label;
   final Color background;
@@ -135,6 +285,15 @@ class MfPill extends StatelessWidget {
     );
   }
 
+  factory MfPill.warning(BuildContext context, String label) {
+    final tokens = context.tokens;
+    return MfPill(
+      label: label,
+      background: tokens.warningBg,
+      foreground: tokens.warning,
+    );
+  }
+
   factory MfPill.neutral(BuildContext context, String label, {IconData? icon}) {
     final tokens = context.tokens;
     return MfPill(
@@ -149,7 +308,7 @@ class MfPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.tokens;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: background,
         borderRadius: BorderRadius.circular(tokens.radiusChip),
@@ -176,7 +335,7 @@ class MfPill extends StatelessWidget {
   }
 }
 
-/// Loading indicator yang konsisten dan minimalis.
+/// Loading indicator minimalis.
 class MfLoading extends StatelessWidget {
   final String? message;
 
@@ -196,14 +355,14 @@ class MfLoading extends StatelessWidget {
               height: 24,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                color: tokens.textPrimary,
+                color: tokens.brand,
               ),
             ),
             if (message != null) ...[
               const SizedBox(height: 12),
               Text(
                 message!,
-                style: TextStyle(color: tokens.textMuted, fontSize: 13),
+                style: TextStyle(color: tokens.textSecondary, fontSize: 13),
               ),
             ],
           ],
@@ -213,7 +372,7 @@ class MfLoading extends StatelessWidget {
   }
 }
 
-/// Empty state yang tenang dan terstruktur (SKILL.md §11).
+/// Empty state yang bersih dan tenang (SKILL.md §11).
 class MfEmptyState extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -239,7 +398,7 @@ class MfEmptyState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 36, color: tokens.textMuted.withOpacity(0.5)),
+            Icon(icon, size: 36, color: tokens.textMuted.withOpacity(0.6)),
             const SizedBox(height: 12),
             Text(
               title,
@@ -254,7 +413,7 @@ class MfEmptyState extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 subtitle!,
-                style: TextStyle(color: tokens.textMuted, fontSize: 13),
+                style: TextStyle(color: tokens.textSecondary, fontSize: 13),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -264,6 +423,9 @@ class MfEmptyState extends StatelessWidget {
                 onPressed: onAction,
                 icon: const Icon(Icons.add_rounded, size: 16),
                 label: Text(actionLabel!),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(120, 40),
+                ),
               ),
             ],
           ],
@@ -309,6 +471,9 @@ class MfErrorState extends StatelessWidget {
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh_rounded, size: 16),
                 label: const Text('Coba Lagi'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(120, 40),
+                ),
               ),
             ],
           ],
@@ -318,12 +483,12 @@ class MfErrorState extends StatelessWidget {
   }
 }
 
-/// Confirmation dialog helper.
+/// Confirmation dialog helper dengan gaya Finsave.
 Future<bool> showConfirmDialog(
   BuildContext context, {
   required String title,
   required String message,
-  String confirmLabel = 'Ya',
+  String confirmLabel = 'Ya, Lanjutkan',
   String cancelLabel = 'Batal',
   Color? confirmColor,
 }) async {
@@ -334,9 +499,10 @@ Future<bool> showConfirmDialog(
       title: Text(
         title,
         style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: tokens.textPrimary),
+          fontSize: 17,
+          fontWeight: FontWeight.w600,
+          color: tokens.textPrimary,
+        ),
       ),
       content: Text(
         message,
@@ -345,15 +511,18 @@ Future<bool> showConfirmDialog(
       actions: [
         TextButton(
           onPressed: () => Navigator.of(ctx).pop(false),
-          child: Text(cancelLabel, style: TextStyle(color: tokens.textMuted)),
+          child:
+              Text(cancelLabel, style: TextStyle(color: tokens.textSecondary)),
         ),
         TextButton(
           onPressed: () => Navigator.of(ctx).pop(true),
           style: TextButton.styleFrom(
             foregroundColor: confirmColor ?? tokens.expense,
           ),
-          child: Text(confirmLabel,
-              style: const TextStyle(fontWeight: FontWeight.w600)),
+          child: Text(
+            confirmLabel,
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
         ),
       ],
     ),

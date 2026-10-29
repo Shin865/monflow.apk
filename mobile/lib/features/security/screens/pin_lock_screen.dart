@@ -90,32 +90,34 @@ class _PinLockScreenState extends ConsumerState<PinLockScreen> {
               children: [
                 const Spacer(flex: 2),
                 Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.12),
+                  width: 56,
+                  height: 56,
+                  decoration: const BoxDecoration(
+                    color: AppColors.brandTealWash,
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
                     Icons.lock_rounded,
-                    size: 32,
-                    color: AppColors.primary,
+                    size: 28,
+                    color: AppColors.brandTeal,
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
                 const Text(
                   'Money Flow Terkunci',
                   style: TextStyle(
-                    fontSize: 20,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 const Text(
                   'Masukkan PIN keamanan Anda untuk melanjutkan',
-                  style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                  style:
+                      TextStyle(fontSize: 12, color: AppColors.textSecondary),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
 
                 // PIN dots indicator
                 Row(
@@ -128,7 +130,8 @@ class _PinLockScreenState extends ConsumerState<PinLockScreen> {
                       height: 14,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: isFilled ? AppColors.primary : AppColors.border,
+                        color:
+                            isFilled ? AppColors.brandTeal : AppColors.border,
                       ),
                     );
                   }),
@@ -189,11 +192,20 @@ class _PinLockScreenState extends ConsumerState<PinLockScreen> {
         ),
         const SizedBox(height: 16),
         if (_enteredPin.length >= 4)
-          TextButton.icon(
+          FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.primaryDark,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius:
+                    BorderRadius.circular(context.tokens.radiusControl),
+              ),
+            ),
             onPressed: _submitPin,
-            icon: const Icon(Icons.arrow_forward_rounded, size: 18),
+            icon: const Icon(Icons.arrow_forward_rounded, size: 16),
             label: const Text('Buka Kunci',
-                style: TextStyle(fontWeight: FontWeight.bold)),
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
           ),
       ],
     );
@@ -211,17 +223,21 @@ class _PinLockScreenState extends ConsumerState<PinLockScreen> {
       onTap: () => _onKeyPress(digit),
       borderRadius: BorderRadius.circular(40),
       child: Container(
-        width: 72,
-        height: 72,
+        width: 68,
+        height: 68,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: Theme.of(context).cardColor,
+          color: AppColors.surface,
           border: Border.all(color: AppColors.border),
         ),
         child: Text(
           digit,
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
         ),
       ),
     );
