@@ -3,17 +3,21 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:money_flow/core/database/database.dart';
+import 'package:money_flow/core/formatting/formatters.dart';
+import 'package:money_flow/data/services/in_app_notification_service.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
-/// Service pengingat lokal Android untuk tagihan jatuh tempo.
-/// Menggunakan jadwal inexact (tidak-tepat) agar tidak memerlukan izin exact alarm.
+/// Service pengingat lokal Android untuk tagihan jatuh tempo (H-7, H-3, H-1, H-0).
+/// Menggunakan jadwal inexact (tidak-tepat) agar tidak memerlukan izin exact alarm (SCHEDULE_EXACT_ALARM).
 class NotificationService {
   final FlutterLocalNotificationsPlugin _notificationsPlugin;
+  final Ref? _ref;
   bool _isInitialized = false;
 
-  NotificationService([FlutterLocalNotificationsPlugin? plugin])
-      : _notificationsPlugin = plugin ?? FlutterLocalNotificationsPlugin();
+  NotificationService({FlutterLocalNotificationsPlugin? plugin, Ref? ref})
+      : _notificationsPlugin = plugin ?? FlutterLocalNotificationsPlugin(),
+        _ref = ref;
 
   /// Inisialisasi notifikasi lokal dan zona waktu
   Future<void> init() async {
@@ -21,7 +25,6 @@ class NotificationService {
 
     try {
       tz.initializeTimeZones();
-      // Set default ke Asia/Jakarta jika tersedia, atau fallback ke UTC
       try {
         tz.setLocalLocation(tz.getLocation('Asia/Jakarta'));
       } catch (_) {
@@ -65,83 +68,115 @@ class NotificationService {
     return false;
   }
 
-  /// Buat ID notifikasi stabil berdasarkan ID tagihan
-  int _getStableNotificationId(int billId) {
-    return 100000 + (billId % 900000);
+  /// ID deterministik: (billId * 10) + offsetIndex
+  /// Memastikan id stabil dan tidak bertabrakan (offset 7->0, 3->1, 1->2, 0->3)
+  int getDeterministicNotificationId(int billId, int offsetDays) {
+    int subIndex;
+    switch (offsetDays) {
+      case 7:
+        subIndex = 1;
+        break;
+      case 3:
+        subIndex = 2;
+        break;
+      case 1:
+        subIndex = 3;
+        break;
+      default:
+        subIndex = 4;
+        break;
+    }
+    return 100000 + ((billId % 80000) * 10) + subIndex;
   }
 
-  /// Jadwalkan pengingat tagihan (H-1 sebelum jatuh tempo pada pukul 09:00 pagi)
-  /// Menggunakan jadwal inexact agar hemat daya dan tidak membutuhkan exact alarm permission.
+  /// Jadwalkan pengingat tagihan pada H-7, H-3, H-1, dan hari H (pukul 09:00 pagi)
   Future<void> scheduleBillReminder(Bill bill) async {
     if (!_isInitialized) await init();
 
-    // Jika tagihan sudah lunas atau nonaktif, batalkan notifikasinya
+    // Jika tagihan sudah lunas atau nonaktif, batalkan semua pengingat terkait
     if (bill.status == BillStatus.paid || !bill.isActive) {
       await cancelBillReminder(bill.id);
       return;
     }
 
     try {
-      final notifId = _getStableNotificationId(bill.id);
-
-      // Waktu target: H-1 sebelum jatuh tempo pada jam 09:00 pagi
-      final due = bill.dueDate;
-      var targetDate = DateTime(due.year, due.month, due.day - 1, 9, 0);
-
       final now = DateTime.now();
-      // Jika H-1 sudah terlewat tetapi jatuh tempo adalah hari ini, ingatkan sekarang/hari ini
-      if (targetDate.isBefore(now)) {
-        if (DateTime(due.year, due.month, due.day)
-            .isAfter(DateTime(now.year, now.month, now.day))) {
-          targetDate = now.add(const Duration(minutes: 30));
-        } else {
-          // Jatuh tempo sudah hari ini atau lewat, tidak perlu jadwal masa depan
-          return;
+      const offsets = [7, 3, 1, 0];
+      final due = bill.dueDate;
+
+      for (final offset in offsets) {
+        final notifId = getDeterministicNotificationId(bill.id, offset);
+        final targetDate =
+            DateTime(due.year, due.month, due.day - offset, 9, 0);
+
+        // Lewati pengingat yang waktunya sudah lewat
+        if (targetDate.isBefore(now)) {
+          continue;
         }
+
+        final scheduledTZ = tz.TZDateTime.from(targetDate, tz.local);
+
+        String title;
+        String body;
+        final formattedAmount = formatRupiah(bill.amount);
+
+        if (offset == 0) {
+          title = 'Tagihan Jatuh Tempo Hari Ini';
+          body = '${bill.name} sebesar $formattedAmount jatuh tempo hari ini!';
+        } else if (offset == 1) {
+          title = 'Tagihan Jatuh Tempo Besok';
+          body = '${bill.name} sebesar $formattedAmount jatuh tempo besok.';
+        } else {
+          title = 'Pengingat Tagihan: ${bill.name}';
+          body =
+              'Tagihan ${bill.name} sebesar $formattedAmount jatuh tempo $offset hari lagi.';
+        }
+
+        const androidDetails = AndroidNotificationDetails(
+          'bills_reminder_channel',
+          'Pengingat Tagihan',
+          channelDescription: 'Pengingat jatuh tempo tagihan Money Flow',
+          importance: Importance.high,
+          priority: Priority.high,
+          icon: '@mipmap/ic_launcher',
+        );
+
+        const details = NotificationDetails(android: androidDetails);
+
+        await _notificationsPlugin.zonedSchedule(
+          notifId,
+          title,
+          body,
+          scheduledTZ,
+          details,
+          androidScheduleMode: AndroidScheduleMode.inexact,
+          payload: 'bill_${bill.id}',
+        );
+
+        debugPrint(
+            'Scheduled reminder #$notifId for bill #${bill.id} (H-$offset) at $scheduledTZ');
       }
-
-      final scheduledTZ = tz.TZDateTime.from(targetDate, tz.local);
-
-      const androidDetails = AndroidNotificationDetails(
-        'bills_reminder_channel',
-        'Pengingat Tagihan',
-        channelDescription: 'Pengingat jatuh tempo tagihan Money Flow',
-        importance: Importance.high,
-        priority: Priority.high,
-        icon: '@mipmap/ic_launcher',
-      );
-
-      const details = NotificationDetails(android: androidDetails);
-
-      await _notificationsPlugin.zonedSchedule(
-        notifId,
-        'Pengingat Tagihan: ${bill.name}',
-        'Tagihan sebesar Rp ${bill.amount} akan jatuh tempo pada ${bill.dueDate.day}/${bill.dueDate.month}/${bill.dueDate.year}.',
-        scheduledTZ,
-        details,
-        androidScheduleMode: AndroidScheduleMode.inexact,
-        payload: 'bill_${bill.id}',
-      );
-
-      debugPrint('Scheduled reminder for bill #${bill.id} at $scheduledTZ');
     } catch (e) {
       debugPrint('Gagal menjadwalkan notifikasi tagihan #${bill.id}: $e');
     }
   }
 
-  /// Batalkan pengingat tagihan
+  /// Batalkan seluruh pengingat untuk satu tagihan (H-7, H-3, H-1, H-0)
   Future<void> cancelBillReminder(int billId) async {
     try {
       if (!_isInitialized) await init();
-      final notifId = _getStableNotificationId(billId);
-      await _notificationsPlugin.cancel(notifId);
-      debugPrint('Cancelled notification for bill #$billId');
+      const offsets = [7, 3, 1, 0];
+      for (final offset in offsets) {
+        final notifId = getDeterministicNotificationId(billId, offset);
+        await _notificationsPlugin.cancel(notifId);
+      }
+      debugPrint('Cancelled all scheduled notifications for bill #$billId');
     } catch (e) {
-      debugPrint('Error cancelling notification #$billId: $e');
+      debugPrint('Error cancelling notifications for bill #$billId: $e');
     }
   }
 
-  /// Sinkronkan dan jadwalkan ulang seluruh notifikasi untuk semua tagihan aktif
+  /// Sinkronkan seluruh jadwal notifikasi sistem & notifikasi in-app
   Future<void> syncAllBillReminders(List<Bill> bills) async {
     for (final b in bills) {
       if (b.isActive && b.status != BillStatus.paid) {
@@ -150,9 +185,14 @@ class NotificationService {
         await cancelBillReminder(b.id);
       }
     }
+
+    // Sinkronkan juga daftar notifikasi dalam aplikasi jika ref tersedia
+    if (_ref != null) {
+      await _ref.read(inAppNotificationsProvider.notifier).syncWithBills(bills);
+    }
   }
 }
 
 final notificationServiceProvider = Provider<NotificationService>((ref) {
-  return NotificationService();
+  return NotificationService(ref: ref);
 });

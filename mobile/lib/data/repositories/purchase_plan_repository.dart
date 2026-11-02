@@ -68,7 +68,10 @@ class PurchasePlanRepository {
           totalActive += p.targetAmount;
           activeCount++;
         } else if (p.status == PlanStatus.achieved) {
-          totalHistory += p.targetAmount;
+          // Gunakan nominal realisasi aktual jika tersimpan di allocatedAmount,
+          // atau fallback ke targetAmount
+          totalHistory +=
+              (p.allocatedAmount > 0) ? p.allocatedAmount : p.targetAmount;
           achievedCount++;
         }
       }

@@ -48,31 +48,35 @@ class ShellScreen extends StatelessWidget {
             top: BorderSide(color: tokens.border, width: 1),
           ),
         ),
-        child: BottomNavigationBar(
-          currentIndex: selectedIndex,
-          onTap: (index) => _onItemTapped(context, index),
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.grid_view_outlined, size: 22),
-              activeIcon: Icon(Icons.grid_view_rounded, size: 22),
-              label: 'Dashboard',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.receipt_long_outlined, size: 22),
-              activeIcon: Icon(Icons.receipt_long_rounded, size: 22),
-              label: 'Transaksi',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.account_balance_wallet_outlined, size: 22),
-              activeIcon: Icon(Icons.account_balance_wallet_rounded, size: 22),
-              label: 'Dompet',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.tune_outlined, size: 22),
-              activeIcon: Icon(Icons.tune_rounded, size: 22),
-              label: 'Pengaturan',
-            ),
-          ],
+        child: SafeArea(
+          top: false,
+          child: BottomNavigationBar(
+            currentIndex: selectedIndex,
+            onTap: (index) => _onItemTapped(context, index),
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.grid_view_outlined, size: 22),
+                activeIcon: Icon(Icons.grid_view_rounded, size: 22),
+                label: 'Dashboard',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.receipt_long_outlined, size: 22),
+                activeIcon: Icon(Icons.receipt_long_rounded, size: 22),
+                label: 'Transaksi',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.account_balance_wallet_outlined, size: 22),
+                activeIcon:
+                    Icon(Icons.account_balance_wallet_rounded, size: 22),
+                label: 'Dompet',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.tune_outlined, size: 22),
+                activeIcon: Icon(Icons.tune_rounded, size: 22),
+                label: 'Pengaturan',
+              ),
+            ],
+          ),
         ),
       ),
     );

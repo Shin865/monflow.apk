@@ -165,7 +165,7 @@ class AppThemeTokens extends ThemeExtension<AppThemeTokens> {
     this.radiusControl = 10.0,
     this.radiusChip = 6.0,
     this.gap = 12.0,
-    this.pad = 14.0,
+    this.pad = 12.0,
   });
 
   Color get borderHairline => rule;
@@ -208,7 +208,7 @@ class AppThemeTokens extends ThemeExtension<AppThemeTokens> {
     radiusControl: 10.0,
     radiusChip: 6.0,
     gap: 12.0,
-    pad: 14.0,
+    pad: 12.0,
   );
 
   @override
@@ -362,8 +362,18 @@ class AppTheme {
         foregroundColor: AppColors.textPrimary,
         elevation: 0,
         scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
         centerTitle: false,
-        systemOverlayStyle: SystemUiOverlayStyle.dark,
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.dark,
+          statusBarBrightness: Brightness.light,
+          systemStatusBarContrastEnforced: false,
+          systemNavigationBarColor: Colors.transparent,
+          systemNavigationBarIconBrightness: Brightness.dark,
+          systemNavigationBarDividerColor: Colors.transparent,
+          systemNavigationBarContrastEnforced: false,
+        ),
         titleTextStyle: TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.w600,
@@ -500,28 +510,42 @@ class AppTheme {
         ),
       ),
       textTheme: const TextTheme(
-        displayLarge: TextStyle(color: AppColors.textPrimary),
-        displayMedium: TextStyle(color: AppColors.textPrimary),
-        displaySmall: TextStyle(color: AppColors.textPrimary),
+        displayLarge: TextStyle(color: AppColors.textPrimary, height: 1.25),
+        displayMedium: TextStyle(color: AppColors.textPrimary, height: 1.25),
+        displaySmall: TextStyle(color: AppColors.textPrimary, height: 1.25),
         headlineLarge: TextStyle(
-            fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+            height: 1.25),
         headlineMedium: TextStyle(
-            fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+            height: 1.25),
         headlineSmall: TextStyle(
-            fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+            height: 1.25),
         titleLarge: TextStyle(
-            fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+            height: 1.25),
         titleMedium: TextStyle(
-            fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+            height: 1.25),
         titleSmall: TextStyle(
-            fontWeight: FontWeight.w500, color: AppColors.textPrimary),
-        bodyLarge: TextStyle(color: AppColors.textPrimary),
-        bodyMedium: TextStyle(color: AppColors.textSecondary),
-        bodySmall: TextStyle(color: AppColors.textMuted),
+            fontWeight: FontWeight.w500,
+            color: AppColors.textPrimary,
+            height: 1.25),
+        bodyLarge: TextStyle(color: AppColors.textPrimary, height: 1.3),
+        bodyMedium: TextStyle(color: AppColors.textSecondary, height: 1.3),
+        bodySmall: TextStyle(color: AppColors.textMuted, height: 1.3),
         labelLarge: TextStyle(
-            fontWeight: FontWeight.w600, color: AppColors.textPrimary),
-        labelMedium: TextStyle(color: AppColors.textSecondary),
-        labelSmall: TextStyle(color: AppColors.textMuted),
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+            height: 1.25),
+        labelMedium: TextStyle(color: AppColors.textSecondary, height: 1.25),
+        labelSmall: TextStyle(color: AppColors.textMuted, height: 1.25),
       ),
     );
   }

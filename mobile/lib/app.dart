@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:money_flow/core/theme/app_theme.dart';
@@ -83,26 +84,38 @@ class _MoneyFlowAppState extends ConsumerState<MoneyFlowApp>
       ],
       locale: const Locale('id', 'ID'),
       builder: (context, child) {
-        return Stack(
-          children: [
-            if (child != null) child,
+        return AnnotatedRegion<SystemUiOverlayStyle>(
+          value: const SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness: Brightness.dark,
+            statusBarBrightness: Brightness.light,
+            systemStatusBarContrastEnforced: false,
+            systemNavigationBarColor: Colors.transparent,
+            systemNavigationBarIconBrightness: Brightness.dark,
+            systemNavigationBarDividerColor: Colors.transparent,
+            systemNavigationBarContrastEnforced: false,
+          ),
+          child: Stack(
+            children: [
+              if (child != null) child,
 
-            // PIN lock overlay — tampil di atas konten saat app terkunci
-            if (!_showSplash && sec.isAppLocked)
-              const Positioned.fill(
-                child: PinLockScreen(),
-              ),
-
-            // Splash screen — tampil saat startup, transisi fade-out halus
-            if (_showSplash)
-              Positioned.fill(
-                child: AnimatedOpacity(
-                  opacity: _showSplash ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 400),
-                  child: const SplashScreen(),
+              // PIN lock overlay — tampil di atas konten saat app terkunci
+              if (!_showSplash && sec.isAppLocked)
+                const Positioned.fill(
+                  child: PinLockScreen(),
                 ),
-              ),
-          ],
+
+              // Splash screen — tampil saat startup, transisi fade-out halus
+              if (_showSplash)
+                Positioned.fill(
+                  child: AnimatedOpacity(
+                    opacity: _showSplash ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 400),
+                    child: const SplashScreen(),
+                  ),
+                ),
+            ],
+          ),
         );
       },
     );

@@ -4,6 +4,7 @@ import 'package:money_flow/core/formatting/thousand_separator_formatter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:money_flow/core/database/database.dart';
 import 'package:money_flow/core/formatting/formatters.dart';
+import 'package:money_flow/core/providers/balance_visibility_provider.dart';
 import 'package:money_flow/core/theme/app_theme.dart';
 import 'package:money_flow/core/widgets/common_widgets.dart';
 import 'package:money_flow/data/repositories/account_repository.dart';
@@ -32,6 +33,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
+    final isHidden = ref.watch(balanceVisibilityProvider);
     final summaryStream =
         ref.watch(purchasePlanRepositoryProvider).watchSummary();
     final plansStream = ref.watch(purchasePlanRepositoryProvider).watchPlans();
@@ -41,7 +43,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
         title: const Text('Rencana Pembelian'),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -58,7 +60,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                     );
 
                 return Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: tokens.surface,
                     borderRadius: BorderRadius.circular(tokens.radiusCard),
@@ -68,48 +70,187 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Icon(Icons.shopping_bag_outlined,
-                              color: tokens.brand, size: 18),
+                          Flexible(
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.shopping_bag_outlined,
+                                    color: tokens.brand, size: 16),
+                                const SizedBox(width: 6),
+                                Flexible(
+                                  child: Text(
+                                    'Total Kebutuhan Belanja Aktif',
+                                    style: TextStyle(
+                                      color: tokens.textSecondary,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                           const SizedBox(width: 8),
-                          Text(
-                            'Total Kebutuhan Belanja Aktif',
-                            style: TextStyle(
-                              color: tokens.textSecondary,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
+                          InkWell(
+                            onTap: () => ref
+                                .read(balanceVisibilityProvider.notifier)
+                                .toggle(),
+                            borderRadius: BorderRadius.circular(16),
+                            child: Padding(
+                              padding: const EdgeInsets.all(4),
+                              child: Icon(
+                                isHidden
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
+                                size: 18,
+                                color: tokens.textSecondary,
+                              ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4),
                       Text(
-                        formatRupiah(summary.totalActiveTarget),
+                        BalanceVisibilityNotifier.formatOrMask(
+                          summary.totalActiveTarget,
+                          isHidden: isHidden,
+                        ),
                         style: TextStyle(
                           color: tokens.textPrimary,
-                          fontSize: 24,
+                          fontSize: 22,
                           fontWeight: FontWeight.w700,
-                          letterSpacing: -0.4,
+                          letterSpacing: -0.3,
+                          height: 1.2,
                           fontFeatures: const [FontFeature.tabularFigures()],
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
                       Container(height: 1, color: tokens.rule),
                       const SizedBox(height: 10),
+                      // Dua ringkasan terpisah, berdampingan (dua kolom):
+                      // "Belum Terealisasi" vs "Sudah Terealisasi"
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildHeaderStat(
-                            label: 'Rencana Aktif',
-                            value: '${summary.activeCount} Barang',
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 6,
+                                      height: 6,
+                                      decoration: const BoxDecoration(
+                                        color: AppColors.warning,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Flexible(
+                                      child: Text(
+                                        'Belum Terealisasi',
+                                        style: TextStyle(
+                                          color: tokens.textSecondary,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  BalanceVisibilityNotifier.formatOrMask(
+                                    summary.totalActiveTarget,
+                                    isHidden: isHidden,
+                                  ),
+                                  style: TextStyle(
+                                    color: tokens.textPrimary,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    height: 1.2,
+                                    fontFeatures: const [
+                                      FontFeature.tabularFigures()
+                                    ],
+                                  ),
+                                ),
+                                Text(
+                                  '${summary.activeCount} Rencana',
+                                  style: TextStyle(
+                                    color: tokens.textMuted,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          _buildHeaderStat(
-                            label: 'Terealisasi',
-                            value: '${summary.achievedCount} Barang',
+                          Container(
+                            width: 1,
+                            height: 38,
+                            color: tokens.rule,
                           ),
-                          _buildHeaderStat(
-                            label: 'Total Realisasi',
-                            value: formatRupiah(summary.totalHistoryTarget),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 6,
+                                      height: 6,
+                                      decoration: const BoxDecoration(
+                                        color: AppColors.income,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Flexible(
+                                      child: Text(
+                                        'Sudah Terealisasi',
+                                        style: TextStyle(
+                                          color: tokens.textSecondary,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  BalanceVisibilityNotifier.formatOrMask(
+                                    summary.totalHistoryTarget,
+                                    isHidden: isHidden,
+                                  ),
+                                  style: TextStyle(
+                                    color: tokens.income,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    height: 1.2,
+                                    fontFeatures: const [
+                                      FontFeature.tabularFigures()
+                                    ],
+                                  ),
+                                ),
+                                Text(
+                                  '${summary.achievedCount} Rencana',
+                                  style: TextStyle(
+                                    color: tokens.textMuted,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
@@ -118,11 +259,12 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                 );
               },
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
 
             // 2. Filter Bar
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 2),
               child: Row(
                 children: [
                   _buildFilterChip(0, 'Semua'),
@@ -133,7 +275,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
 
             // 3. Daftar Rencana Pembelian
             StreamBuilder<List<PurchasePlan>>(
@@ -191,27 +333,6 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     );
   }
 
-  Widget _buildHeaderStat({required String label, required String value}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(color: Colors.white60, fontSize: 11),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          value,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildFilterChip(int index, String label) {
     final isSelected = _statusFilter == index;
     return ChoiceChip(
@@ -232,7 +353,7 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
     final isAchieved = plan.status == PlanStatus.achieved;
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: tokens.surface,
         borderRadius: BorderRadius.circular(tokens.radiusCard),
@@ -258,7 +379,10 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                         fontWeight: FontWeight.w600,
                         fontSize: 15,
                         color: tokens.textPrimary,
+                        height: 1.25,
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
                     Wrap(
@@ -373,35 +497,14 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
           // Harga / Nominal Rencana
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Harga Rencana',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: tokens.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    formatRupiah(plan.targetAmount),
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: tokens.textPrimary,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
-                  ),
-                ],
-              ),
-              if (plan.targetDate != null)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Target Realisasi',
+                      'Harga Rencana',
                       style: TextStyle(
                         fontSize: 11,
                         color: tokens.textSecondary,
@@ -409,40 +512,69 @@ class _PlanningScreenState extends ConsumerState<PlanningScreen> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      formatDate(plan.targetDate!),
+                      formatRupiah(plan.targetAmount),
                       style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
                         color: tokens.textPrimary,
                         fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
                   ],
                 ),
+              ),
+              if (plan.targetDate != null) ...[
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        'Target Realisasi',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: tokens.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        formatDate(plan.targetDate!),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: tokens.textPrimary,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
           if (plan.description != null && plan.description!.isNotEmpty) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             Text(
               plan.description!,
               style: TextStyle(
                 fontSize: 12,
                 color: tokens.textSecondary,
+                height: 1.25,
               ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
           ],
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           // Tombol status & Realisasi
           if (!isAchieved)
             SizedBox(
               width: double.infinity,
-              height: 42,
+              height: 44,
               child: MfButton.primary(
                 label: 'Realisasikan & Potong Saldo',
                 icon: Icons.check_circle_outline_rounded,
-                height: 42,
+                height: 44,
                 onPressed: () => _showCompletePlanDialog(context, ref, plan),
               ),
             )

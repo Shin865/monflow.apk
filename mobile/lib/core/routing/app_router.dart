@@ -18,6 +18,7 @@ import 'package:money_flow/core/routing/shell_screen.dart';
 
 import 'package:money_flow/features/reports/screens/reports_screen.dart';
 import 'package:money_flow/features/settings/screens/about_screen.dart';
+import 'package:money_flow/features/notifications/screens/notifications_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -132,6 +133,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/about',
         name: 'about',
         builder: (context, state) => const AboutScreen(),
+      ),
+      GoRoute(
+        path: '/notifications',
+        name: 'notifications',
+        builder: (context, state) => const NotificationsScreen(),
       ),
     ],
   );

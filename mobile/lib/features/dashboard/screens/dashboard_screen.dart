@@ -7,11 +7,14 @@ import 'package:money_flow/core/providers/balance_visibility_provider.dart';
 import 'package:money_flow/core/theme/app_theme.dart';
 import 'package:money_flow/core/widgets/common_widgets.dart';
 import 'package:money_flow/data/repositories/account_repository.dart';
+import 'package:money_flow/data/repositories/bill_repository.dart';
 import 'package:money_flow/data/repositories/debt_repository.dart';
 import 'package:money_flow/data/repositories/deposit_repository.dart';
 import 'package:money_flow/data/repositories/investment_repository.dart';
 import 'package:money_flow/data/repositories/purchase_plan_repository.dart';
 import 'package:money_flow/data/repositories/transaction_repository.dart';
+import 'package:money_flow/data/services/in_app_notification_service.dart';
+import 'package:money_flow/data/services/notification_service.dart';
 import 'package:money_flow/domain/rules/investment_rules.dart';
 import 'package:money_flow/domain/rules/net_worth_rules.dart';
 
@@ -34,6 +37,20 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tokens = context.tokens;
+    final unreadNotifCount =
+        ref.watch(inAppNotificationsProvider).where((n) => !n.isRead).length;
+
+    // Trigger sinkronisasi notifikasi tagihan saat dashboard dibuka
+    ref.listen<AsyncValue<List<Bill>>>(
+      billsStreamProvider,
+      (_, next) {
+        if (next.hasValue && next.value != null) {
+          ref
+              .read(notificationServiceProvider)
+              .syncAllBillReminders(next.value!);
+        }
+      },
+    );
 
     return Scaffold(
       backgroundColor: tokens.ground,
@@ -41,44 +58,85 @@ class DashboardScreen extends ConsumerWidget {
         titleSpacing: 16,
         title: Row(
           children: [
-            Container(
-              width: 32,
-              height: 32,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: tokens.brand,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(
-                Icons.account_balance_wallet_rounded,
-                color: Colors.white,
-                size: 18,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset(
+                'assets/app_icon.png',
+                width: 32,
+                height: 32,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: tokens.brand,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.account_balance_wallet_rounded,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Money Flow',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: tokens.textPrimary,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-                Text(
-                  'Manajemen Keuangan Mandiri',
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: tokens.textSecondary,
-                  ),
-                ),
-              ],
+            Text(
+              'Money Flow',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: tokens.textPrimary,
+                letterSpacing: -0.3,
+              ),
             ),
           ],
         ),
+        actions: [
+          IconButton(
+            tooltip: 'Notifikasi',
+            icon: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(
+                  Icons.notifications_outlined,
+                  color: tokens.textPrimary,
+                  size: 24,
+                ),
+                if (unreadNotifCount > 0)
+                  Positioned(
+                    right: -2,
+                    top: -2,
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        color: tokens.expense,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      child: Text(
+                        unreadNotifCount > 9 ? '9+' : '$unreadNotifCount',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          height: 1,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            onPressed: () => context.pushNamed('notifications'),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: RefreshIndicator(
         color: tokens.brand,
@@ -88,10 +146,11 @@ class DashboardScreen extends ConsumerWidget {
           ref.invalidate(investmentRepositoryProvider);
           ref.invalidate(depositRepositoryProvider);
           ref.invalidate(purchasePlanRepositoryProvider);
+          ref.invalidate(billRepositoryProvider);
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: EdgeInsets.symmetric(horizontal: tokens.pad, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -99,16 +158,16 @@ class DashboardScreen extends ConsumerWidget {
               const SizedBox(height: 12),
               _FinsaveActionButtons(),
               const SizedBox(height: 12),
-              _SecondaryShortcutsRow(),
-              const SizedBox(height: 16),
+              _SecondaryShortcutsGrid(),
+              const SizedBox(height: 14),
               _FinsaveCashFlowCard(),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
               const _PortfolioAndPlanCards(),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
               _AccountsList(),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
               _RecentTransactions(),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -179,7 +238,7 @@ class _AvailableBalanceCard extends ConsumerWidget {
 
                     return Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: tokens.surface,
                         borderRadius: BorderRadius.circular(tokens.radiusCard),
@@ -231,7 +290,7 @@ class _AvailableBalanceCard extends ConsumerWidget {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 4),
 
                           // Nominal Saldo Besar (Tabular Figures)
                           Text(
@@ -241,15 +300,16 @@ class _AvailableBalanceCard extends ConsumerWidget {
                             ),
                             style: TextStyle(
                               color: tokens.textPrimary,
-                              fontSize: 30,
+                              fontSize: 28,
                               fontWeight: FontWeight.w700,
-                              letterSpacing: -0.6,
+                              letterSpacing: -0.5,
+                              height: 1.2,
                               fontFeatures: const [
                                 FontFeature.tabularFigures()
                               ],
                             ),
                           ),
-                          const SizedBox(height: 14),
+                          const SizedBox(height: 10),
 
                           // Hairline divider
                           Container(
@@ -257,7 +317,7 @@ class _AvailableBalanceCard extends ConsumerWidget {
                             width: double.infinity,
                             color: tokens.rule,
                           ),
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 8),
 
                           // Sub-metrics: Total Aset & Net Worth
                           Row(
@@ -374,8 +434,9 @@ class _FinsaveActionButtons extends StatelessWidget {
   }
 }
 
-/// Baris Pintasan Fitur Keuangan Sekunder (Finsave clean row)
-class _SecondaryShortcutsRow extends StatelessWidget {
+/// Grid Menu Pintasan Fitur Keuangan 2 baris x 3 kolom (Finsave clean grid pattern)
+/// Area sentuh ≥ 64dp, ikon ±28dp, kartu pembungkus rapi tanpa kotak warna-warni berlebih
+class _SecondaryShortcutsGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
@@ -398,38 +459,56 @@ class _SecondaryShortcutsRow extends StatelessWidget {
     ];
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
       decoration: BoxDecoration(
         color: tokens.surface,
-        borderRadius: BorderRadius.circular(tokens.radiusControl),
-        border: Border.all(color: tokens.border),
+        borderRadius: BorderRadius.circular(tokens.radiusCard),
+        border: Border.all(color: tokens.border, width: 1),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: shortcuts.map((item) {
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: shortcuts.length,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          crossAxisSpacing: 8,
+          mainAxisSpacing: 8,
+          mainAxisExtent: 68,
+        ),
+        itemBuilder: (context, index) {
+          final item = shortcuts[index];
           return InkWell(
             onTap: () => context.pushNamed(item.route),
             borderRadius: BorderRadius.circular(tokens.radiusControl),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+              decoration: BoxDecoration(
+                color: tokens.ground,
+                borderRadius: BorderRadius.circular(tokens.radiusControl),
+                border: Border.all(color: tokens.borderHairline),
+              ),
               child: Column(
-                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(item.icon, size: 18, color: tokens.textPrimary),
+                  Icon(item.icon, size: 26, color: tokens.brand),
                   const SizedBox(height: 4),
                   Text(
                     item.label,
                     style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
-                      color: tokens.textSecondary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: tokens.textPrimary,
+                      height: 1.15,
                     ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
           );
-        }).toList(),
+        },
       ),
     );
   }
@@ -452,14 +531,19 @@ class _FinsaveCashFlowCard extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Ringkasan Arus Kas',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: tokens.textPrimary,
+              Flexible(
+                child: Text(
+                  'Ringkasan Arus Kas',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: tokens.textPrimary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
+              const SizedBox(width: 8),
               Row(
                 children: [
                   IconButton(
@@ -706,21 +790,29 @@ class _PortfolioAndPlanCards extends ConsumerWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          Icon(Icons.trending_up_rounded,
-                              color: tokens.brand, size: 18),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Investasi & Deposito',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
-                              color: tokens.textPrimary,
+                      Flexible(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.trending_up_rounded,
+                                color: tokens.brand, size: 18),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                'Investasi & Deposito',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                  color: tokens.textPrimary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
+                      const SizedBox(width: 8),
                       MfPill.neutral(
                         context,
                         '${inv.count} Inv • ${dep.count} Dep',

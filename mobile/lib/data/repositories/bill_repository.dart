@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:money_flow/core/database/database.dart';
+import 'package:money_flow/data/services/notification_service.dart';
 import 'package:uuid/uuid.dart';
 
 /// DTO dengan data tagihan lengkap beserta total pembayaran dan relasi
@@ -29,8 +30,10 @@ class EnrichedBill {
 class BillRepository {
   final AppDatabase _db;
   final Uuid _uuid;
+  final NotificationService? _notificationService;
 
-  BillRepository(this._db, [Uuid? uuid]) : _uuid = uuid ?? const Uuid();
+  BillRepository(this._db, [Uuid? uuid, this._notificationService])
+      : _uuid = uuid ?? const Uuid();
 
   /// Hitung status tagihan berdasarkan tanggal jatuh tempo dan total terbayar
   BillStatus calculateBillStatus(DateTime dueDate, int amount, int totalPaid,
@@ -82,8 +85,11 @@ class BillRepository {
     );
 
     final id = await _db.into(_db.bills).insert(companion);
-    return (await (_db.select(_db.bills)..where((t) => t.id.equals(id)))
-        .getSingle());
+    final createdBill = await (_db.select(_db.bills)
+          ..where((t) => t.id.equals(id)))
+        .getSingle();
+    await _notificationService?.scheduleBillReminder(createdBill);
+    return createdBill;
   }
 
   /// Perbarui tagihan
@@ -125,6 +131,11 @@ class BillRepository {
     );
 
     await _db.update(_db.bills).replace(updated);
+    // Jadwalkan ulang jika tanggal jatuh tempo atau status berubah
+    await _notificationService?.cancelBillReminder(updated.id);
+    if (updated.isActive && updated.status != BillStatus.paid) {
+      await _notificationService?.scheduleBillReminder(updated);
+    }
     return updated;
   }
 
@@ -138,6 +149,7 @@ class BillRepository {
             isActive: false,
             updatedAt: DateTime.now(),
           ));
+      await _notificationService?.cancelBillReminder(id);
     }
   }
 
@@ -210,6 +222,11 @@ class BillRepository {
         updatedAt: DateTime.now(),
       );
       await _db.update(_db.bills).replace(updatedBill);
+
+      // Batalkan notifikasi jika tagihan lunas
+      if (newStatus == BillStatus.paid) {
+        await _notificationService?.cancelBillReminder(billId);
+      }
 
       Category? category;
       if (updatedBill.categoryId != null) {
@@ -379,5 +396,10 @@ class BillRepository {
 
 final billRepositoryProvider = Provider<BillRepository>((ref) {
   final db = ref.watch(databaseProvider);
-  return BillRepository(db);
+  final notifService = ref.watch(notificationServiceProvider);
+  return BillRepository(db, null, notifService);
+});
+
+final billsStreamProvider = StreamProvider<List<Bill>>((ref) {
+  return ref.watch(billRepositoryProvider).watchBills();
 });

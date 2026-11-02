@@ -1,13 +1,17 @@
 import 'dart:io';
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:money_flow/core/database/database.dart';
 import 'package:money_flow/core/formatting/formatters.dart';
 import 'package:money_flow/core/theme/app_theme.dart';
+import 'package:money_flow/data/repositories/bill_repository.dart';
 import 'package:money_flow/data/services/backup_restore_service.dart';
 import 'package:money_flow/data/services/encrypted_backup_service.dart';
+import 'package:money_flow/data/services/notification_service.dart';
 import 'package:money_flow/data/services/security_service.dart';
 import 'package:money_flow/features/security/screens/setup_pin_dialog.dart';
 
@@ -26,11 +30,62 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _isBiometricEnabled = false;
   bool _isLockOnBackground = true;
   bool _canCheckBiometrics = false;
+  bool _isBillReminderEnabled = true;
 
   @override
   void initState() {
     super.initState();
     _loadSecuritySettings();
+    _loadReminderSetting();
+  }
+
+  Future<void> _loadReminderSetting() async {
+    final db = ref.read(databaseProvider);
+    final s = await (db.select(db.settings)
+          ..where((tbl) => tbl.key.equals('setting_bill_reminder_enabled')))
+        .getSingleOrNull();
+    if (mounted) {
+      setState(() {
+        _isBillReminderEnabled = s == null || s.value != 'false';
+      });
+    }
+  }
+
+  Future<void> _toggleBillReminder(bool val) async {
+    setState(() => _isBillReminderEnabled = val);
+    final db = ref.read(databaseProvider);
+    final existing = await (db.select(db.settings)
+          ..where((tbl) => tbl.key.equals('setting_bill_reminder_enabled')))
+        .getSingleOrNull();
+
+    if (existing == null) {
+      await db.into(db.settings).insert(
+            SettingsCompanion.insert(
+              key: 'setting_bill_reminder_enabled',
+              value: Value(val ? 'true' : 'false'),
+              description: const Value('Pengingat tagihan aktif/nonaktif'),
+            ),
+          );
+    } else {
+      await (db.update(db.settings)
+            ..where((tbl) => tbl.key.equals('setting_bill_reminder_enabled')))
+          .write(
+        SettingsCompanion(
+          value: Value(val ? 'true' : 'false'),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+    }
+
+    // Jika dinonaktifkan, batalkan semua notifikasi sistem
+    final bills = await ref.read(billRepositoryProvider).watchBills().first;
+    if (val) {
+      await ref.read(notificationServiceProvider).syncAllBillReminders(bills);
+    } else {
+      for (final b in bills) {
+        await ref.read(notificationServiceProvider).cancelBillReminder(b.id);
+      }
+    }
   }
 
   Future<void> _loadSecuritySettings() async {
@@ -962,6 +1017,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 12),
+
+          _SettingsTile(
+            icon: Icons.notifications_active_outlined,
+            iconColor: AppColors.brandTeal,
+            title: 'Pengingat Tagihan',
+            subtitle: _isBillReminderEnabled
+                ? 'Aktif (H-7, H-3, H-1, & hari-H pukul 09:00)'
+                : 'Pengingat tagihan dinonaktifkan',
+            trailing: Switch(
+              value: _isBillReminderEnabled,
+              onChanged: _toggleBillReminder,
+            ),
+            onTap: () => _toggleBillReminder(!_isBillReminderEnabled),
+          ),
+          const SizedBox(height: 8),
 
           _SettingsTile(
             icon: Icons.lock_outline_rounded,
