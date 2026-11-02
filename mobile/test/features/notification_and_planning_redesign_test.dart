@@ -1,11 +1,9 @@
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:money_flow/core/database/database.dart';
-import 'package:money_flow/core/providers/balance_visibility_provider.dart';
 import 'package:money_flow/data/repositories/bill_repository.dart';
 import 'package:money_flow/data/repositories/purchase_plan_repository.dart';
 import 'package:money_flow/data/services/in_app_notification_service.dart';
@@ -34,8 +32,11 @@ void main() {
     await db.close();
   });
 
-  group('Bagian 3 — Rencana Pembelian Tests (Terealisasi vs Belum Terealisasi)', () {
-    test('Kalkulasi Belum Terealisasi dan Sudah Terealisasi dari Database secara Reaktif', () async {
+  group('Bagian 3 — Rencana Pembelian Tests (Terealisasi vs Belum Terealisasi)',
+      () {
+    test(
+        'Kalkulasi Belum Terealisasi dan Sudah Terealisasi dari Database secara Reaktif',
+        () async {
       // 1. Awalnya belum ada rencana
       var summary = await planRepo.watchSummary().first;
       expect(summary.totalActiveTarget, equals(0));
@@ -61,7 +62,7 @@ void main() {
       );
 
       // Tambah Rencana 2: Meja Kerja (Rp 3.500.000)
-      final plan2 = await planRepo.create(
+      await planRepo.create(
         name: 'Standing Desk Ergonomic',
         targetAmount: 3500000,
         category: 'Perabot',
@@ -102,7 +103,9 @@ void main() {
   });
 
   group('Bagian 2.3 — Logika Pengingat Tagihan & Penjadwalan Tests', () {
-    test('Penjadwalan deterministik H-7, H-3, H-1, H-0 dan pembersihan saat lunas/dihapus', () async {
+    test(
+        'Penjadwalan deterministik H-7, H-3, H-1, H-0 dan pembersihan saat lunas/dihapus',
+        () async {
       final now = DateTime.now();
 
       // Buat tagihan jatuh tempo 5 hari ke depan
@@ -156,7 +159,9 @@ void main() {
       expect(inAppNotifier.state.any((n) => n.billId == bill.id), isFalse);
     });
 
-    test('Layar Notifikasi — Operasi tandai dibaca, tandai semua dibaca, dan hapus', () async {
+    test(
+        'Layar Notifikasi — Operasi tandai dibaca, tandai semua dibaca, dan hapus',
+        () async {
       final inAppNotifier = InAppNotificationsNotifier(db);
       final now = DateTime.now();
 
@@ -175,7 +180,8 @@ void main() {
 
       // Tandai 1 dibaca
       await inAppNotifier.markAsRead(firstId);
-      expect(inAppNotifier.state.firstWhere((n) => n.id == firstId).isRead, isTrue);
+      expect(inAppNotifier.state.firstWhere((n) => n.id == firstId).isRead,
+          isTrue);
 
       // Tandai semua dibaca
       await inAppNotifier.markAllAsRead();
@@ -191,8 +197,10 @@ void main() {
     });
   });
 
-  group('Widget UI Verification Tests — Dashboard Grid 2x3 & Planning Screen', () {
-    testWidgets('Dashboard renders 2x3 grid shortcuts without overflow', (tester) async {
+  group('Widget UI Verification Tests — Dashboard Grid 2x3 & Planning Screen',
+      () {
+    testWidgets('Dashboard renders 2x3 grid shortcuts without overflow',
+        (tester) async {
       await tester.binding.setSurfaceSize(const Size(390, 844));
 
       await tester.pumpWidget(
@@ -225,7 +233,9 @@ void main() {
       await tester.pumpAndSettle();
     });
 
-    testWidgets('PlanningScreen renders Belum Terealisasi and Sudah Terealisasi with textScale 1.3', (tester) async {
+    testWidgets(
+        'PlanningScreen renders Belum Terealisasi and Sudah Terealisasi with textScale 1.3',
+        (tester) async {
       await tester.binding.setSurfaceSize(const Size(380, 850));
 
       // Tambahkan data sample
@@ -262,7 +272,8 @@ void main() {
       await tester.pumpAndSettle();
     });
 
-    testWidgets('NotificationsScreen empty state renders cleanly', (tester) async {
+    testWidgets('NotificationsScreen empty state renders cleanly',
+        (tester) async {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
